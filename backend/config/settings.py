@@ -199,6 +199,8 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO").upper()},
+    # httpx logs every Wikimedia request at INFO.
+    "loggers": {"httpx": {"level": "WARNING"}, "httpcore": {"level": "WARNING"}},
 }
 
 # ---------------------------------------------------------------------------

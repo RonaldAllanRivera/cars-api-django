@@ -155,7 +155,9 @@ class TestFilesInCategory:
             extmetadata={
                 "LicenseShortName": {"value": "CC BY-SA 4.0"},
                 "ImageDescription": {"value": "  A <b>1997</b> Acura CL  "},
-                "Artist": {"value": "Jane Doe"},
+                "Artist": {
+                    "value": '<a rel="nofollow" class="external text" href="https://flickr.com/x">Jane&nbsp;Doe</a>'
+                },
                 "Credit": {"value": "   "},
                 "UsageTerms": {"value": "Creative Commons Attribution-Share Alike 4.0"},
             },
@@ -166,7 +168,7 @@ class TestFilesInCategory:
         [image] = WikimediaClient().files_in_category("Acura CL", 1997)
 
         assert image["license"] == "CC BY-SA 4.0"
-        assert image["description"] == "A <b>1997</b> Acura CL"
+        assert image["description"] == "A 1997 Acura CL", "Commons HTML is stored as plain text for every client."
         assert image["attribution"] == "Jane Doe | Creative Commons Attribution-Share Alike 4.0"
         assert image["thumbnail_url"] == image["source_url"], "Without a thumbnail the original URL stands in."
 

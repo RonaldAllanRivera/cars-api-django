@@ -1,6 +1,7 @@
 """Wikimedia Commons API client. Port of app/Services/Images/WikimediaClient.php."""
 
 import hashlib
+import html
 import re
 import time
 from typing import Any
@@ -8,6 +9,7 @@ from typing import Any
 import httpx
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.html import strip_tags
 
 BLOCK_STATUSES = frozenset({429, 403, 503})
 # Hard ceiling on requests for one category, so an endless continuation cannot spin a request forever.
@@ -202,10 +204,12 @@ def _map_page(page: dict) -> dict:
 
 
 def _ext_value(ext: dict, key: str) -> str | None:
+    """Commons extmetadata values are HTML; clients get plain text."""
     entry = ext.get(key)
     if not isinstance(entry, dict) or entry.get("value") is None:
         return None
-    return str(entry["value"]).strip() or None
+    text = html.unescape(strip_tags(str(entry["value"])))
+    return " ".join(text.split()) or None
 
 
 def _blocked_error(response: httpx.Response) -> WikimediaBlockedError:
