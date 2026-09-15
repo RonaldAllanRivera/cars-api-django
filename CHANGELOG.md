@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Backend:** Django 5.2 + DRF API with scoped, hashed bearer tokens and Laravel-compatible pagination and errors.
+- **Search:** Wikimedia Commons client with caching, back-off and block detection; category resolution; exact-year and make matching; multi-year search runner; time-boxed bulk runs.
+- **Pipeline:** CSV importer with validation, dedupe and caps; import coverage; Pillow ZIP export and matching CSV manifest; health summary; `prune_error_events`.
+- **API:** all `/api/v1` endpoints, with a contract test against the mobile client's JSON fixtures. Export links are signed, and ZIP links are single-use.
+- **Admin:** Django admin for runs, reviews, exports, error log and token revocation; `ensure_admin` and `seed_catalog` commands.
+- **Web client:** Vue 3 app with search, library, CSV pipeline with live bulk-run progress, keyboard-driven review queue, and health dashboard.
+- **Mobile client:** the existing Expo app, running unchanged against the new API.
+- **Infrastructure:** Docker image, Render Blueprint, GitHub Actions for backend, web and mobile, and a free-tier deployment guide.
+
+### Changed
+- Commons descriptions and attributions are stored as plain text instead of raw HTML, so every client shows clean credits.
+- The resizer applies EXIF orientation, and a failed image download is skipped instead of aborting the whole ZIP.
+
+### Fixed
+- `\x00` bytes in upstream error bodies no longer make PostgreSQL reject error-log inserts.
+
 ## [0.1.0] - 2026-09-15
 
 ### Added

@@ -404,7 +404,7 @@ cars-api-django/
 - [x] ZIP / CSV exports with signed links
 - [x] `/api/v1` with scoped tokens and mobile contract parity
 - [x] Django admin
-- [ ] Vue 3 web client
+- [x] Vue 3 web client
 - [ ] Expo client connected to the Django API
 - [ ] CI and free-tier deployment
 
