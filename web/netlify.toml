@@ -1,0 +1,36 @@
+# Netlify builds from this directory (set "Base directory" to `web`).
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# A single-page app: every unknown path is handed the shell and the router
+# decides. Static files that exist (assets, favicon) still win, because
+# Netlify only applies a non-forced rewrite when no file matches.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# The bearer token lives in localStorage, so the cheap defences against the XSS
+# that would read it are worth having. Vite emits no inline scripts or styles,
+# and Vue applies :style bindings through the CSSOM, which CSP does not govern,
+# so neither script-src nor style-src needs 'unsafe-inline' or a hash.
+# img-src reaches Wikimedia because the grid renders upload.wikimedia.org URLs
+# straight from the API. connect-src cannot name the API origin - it is
+# VITE_API_URL, chosen at build time - so it allows any https origin.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://upload.wikimedia.org https://*.wikimedia.org; font-src 'self' data:; connect-src 'self' https:"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

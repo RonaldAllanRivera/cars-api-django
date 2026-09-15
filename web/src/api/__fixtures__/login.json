@@ -1,0 +1,15 @@
+{
+    "token": "1|fixture-token-not-a-real-credential",
+    "token_type": "Bearer",
+    "abilities": [
+        "search:read",
+        "search:write",
+        "review:write",
+        "errors:read"
+    ],
+    "user": {
+        "id": 1,
+        "name": "Fixture User",
+        "email": "fixtures@example.test"
+    }
+}

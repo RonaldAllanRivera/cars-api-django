@@ -1,0 +1,8 @@
+{
+    "message": "The year range may span at most 3 years, because the search runs inside this request.",
+    "errors": {
+        "to_year": [
+            "The year range may span at most 3 years, because the search runs inside this request."
+        ]
+    }
+}

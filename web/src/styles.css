@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo/wdth.css';
+
+/*
+ * One product across web and mobile: the palette is mobile/src/theme/tokens.ts
+ * verbatim. Slate surfaces in three tiers, amber for actions only - no status
+ * is ever amber, so it never competes with the failure red.
+ */
+@theme {
+  --color-surface: #020617;
+  --color-raised: #0f172a;
+  --color-sunken: #1e293b;
+  --color-line: #1e293b;
+  --color-line-strong: #334155;
+
+  --color-ink: #f8fafc;
+  --color-ink-2: #94a3b8;
+  --color-ink-3: #7c8aa0;
+
+  --color-accent: #f59e0b;
+  --color-accent-text: #fbbf24;
+  --color-accent-fg: #020617;
+
+  --color-success: #10b981;
+  --color-success-text: #6ee7b7;
+  --color-danger: #ef4444;
+  --color-danger-text: #fca5a5;
+  --color-info: #0ea5e9;
+  --color-info-text: #7dd3fc;
+
+  /*
+   * Archivo, one family at two widths: expanded for titles and figures - the
+   * stretched lettering of a badge on a tailgate - and normal width for
+   * everything that has to be read quickly.
+   */
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-control: 8px;
+  --radius-surface: 12px;
+
+  --text-micro: 12px;
+  --text-micro--line-height: 16px;
+  --text-meta: 13px;
+  --text-meta--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-section: 19px;
+  --text-section--line-height: 26px;
+  --text-title: 30px;
+  --text-title--line-height: 36px;
+  --text-figure: 40px;
+  --text-figure--line-height: 44px;
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+}
+
+@utility type-display {
+  font-stretch: 125%;
+  font-weight: 760;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-figure {
+  font-stretch: 112%;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+@utility focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+
+  &:focus-visible {
+    outline-color: var(--color-accent-text);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background: var(--color-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-text);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 40%, transparent);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input[type='number']::-webkit-inner-spin-button {
+    opacity: 0.4;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-raised) 0%,
+    color-mix(in oklab, var(--color-sunken) 70%, var(--color-raised)) 50%,
+    var(--color-raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
