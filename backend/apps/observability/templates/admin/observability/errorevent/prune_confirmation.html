@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% static 'admin/js/cancel.js' %}" async></script>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} delete-confirmation{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; Prune
+</div>
+{% endblock %}
+
+{% block content %}
+  <p>
+    Error events are kept for <strong>{{ retention_days }} day{{ retention_days|pluralize }}</strong>.
+    There is no scheduled job on the free hosting tier, so old entries are removed only from here
+    or with <code>manage.py prune_error_events</code>.
+  </p>
+  {% if prunable %}
+    <p>This deletes <strong>{{ prunable }}</strong> entr{{ prunable|pluralize:"y,ies" }} older than {{ retention_days }} day{{ retention_days|pluralize }}. Recent entries are kept.</p>
+    <form method="post">{% csrf_token %}
+      <div>
+        <input type="submit" value="Yes, prune them">
+        <a href="{% url opts|admin_urlname:'changelist' %}" class="button cancel-link">No, take me back</a>
+      </div>
+    </form>
+  {% else %}
+    <p>Nothing is old enough to prune.</p>
+    <p><a href="{% url opts|admin_urlname:'changelist' %}" class="button">Back to the error log</a></p>
+  {% endif %}
+{% endblock %}
