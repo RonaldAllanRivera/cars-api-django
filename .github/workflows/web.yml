@@ -1,0 +1,103 @@
+name: Web CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+  # VITE_API_URL is inlined at build time, so changing that variable rebuilds
+  # nothing by itself. Run this manually on main to re-publish.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a run on main: it may be midway through publishing to Netlify.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:8000' }}
+
+  deploy:
+    name: Deploy to Netlify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: check
+    # Only from main, never from a pull request (a fork's PR has no secrets),
+    # and only once the repository variable WEB_DEPLOY_ENABLED is 'true', so
+    # main can carry this workflow before the Netlify site exists.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.WEB_DEPLOY_ENABLED == 'true'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # An unset `vars.*` renders as an empty string, which would be baked into
+      # the bundle and break every request while the deploy stays green. Setting
+      # the value as a *secret* instead of a *variable* produces exactly that.
+      - name: Build
+        run: |
+          test -n "$VITE_API_URL" || { echo "::error::VITE_API_URL repository variable is not set"; exit 1; }
+          npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      # Run from web/ so Netlify picks up web/netlify.toml (SPA rewrites, headers).
+      # Pinned to a major so a Netlify release cannot change deploy behaviour
+      # without a commit here.
+      - name: Deploy
+        run: npx --yes netlify-cli@27 deploy --dir=dist --prod --message "$GITHUB_SHA"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_WEB_SITE_ID }}

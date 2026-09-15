@@ -1,0 +1,79 @@
+name: cars-api-django
+
+# Local development stack. Production runs the same backend image on Render
+# (see render.yaml and DEPLOYMENT.md); nothing here is used there.
+#
+#   cp .env.example .env
+#   docker compose up --build
+#
+# API http://localhost:8000 · admin http://localhost:8000/admin · web http://localhost:5173
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-cars_images_api}
+      POSTGRES_USER: ${DB_USERNAME:-cars_images_api}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${FORWARD_DB_PORT:-5434}:5432"
+    volumes:
+      - cars-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      args:
+        # Dev requirements add pytest and ruff: `docker compose exec api pytest`.
+        REQUIREMENTS: dev
+    image: cars-api-django/api:dev
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # .env points DB_HOST/DB_PORT at the published port for running without
+      # Docker; inside the network the database is the `db` service. A
+      # DATABASE_URL in .env would take precedence over both.
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+    # Same boot steps as bin/start.sh, but with the auto-reloading dev server.
+    command: >-
+      sh -c "python manage.py migrate --noinput
+      && python manage.py createcachetable
+      && python manage.py ensure_admin
+      && python manage.py seed_catalog --if-empty
+      && exec python manage.py runserver 0.0.0.0:8000"
+
+  web:
+    image: node:22
+    working_dir: /web
+    environment:
+      # Read by the browser, so it is the host-facing API address.
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/web
+      # Linux-built dependencies stay in the container, not in ./web.
+      - web-node-modules:/web/node_modules
+    command: >-
+      sh -c "if [ ! -f package.json ]; then echo 'web/package.json not found; skipping the web client.'; exit 0; fi;
+      npm ci && exec npm run dev -- --host 0.0.0.0"
+
+volumes:
+  cars-pg-data:
+  web-node-modules:

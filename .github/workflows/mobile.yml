@@ -1,0 +1,121 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Supersede an outdated pull-request run, but never cancel a run on main:
+  # that one may be midway through publishing to Netlify.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  check:
+    name: Typecheck, lint, test, export
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      # `npm ci` from mobile/package-lock.json only; web/ has its own lockfile
+      # and the two never mix, which keeps Metro from resolving another app's
+      # node_modules.
+      - name: Install
+        run: npm ci
+
+      # `Href` is a literal union of the app's real routes, generated into
+      # .expo/types/router.d.ts - and .expo/ is gitignored, so CI never has it.
+      # Without it `Href` degrades to a permissive type and tsc passes a link
+      # that cannot resolve. `expo export` does not write that file.
+      - name: Generate route types
+        run: npm run routes:types
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --ci
+
+      - name: Export web build
+        run: npm run build:web
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'http://localhost:8000' }}
+
+      # Static export means every dynamic route needs a hand-written rewrite in
+      # netlify.toml, and nothing else links that list to the router: a renamed
+      # route would 404 on a hard refresh while client-side navigation still works.
+      - name: Check the Netlify rewrites match the exported routes
+        run: npm run check:redirects
+
+  deploy:
+    name: Deploy web build to Netlify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+    # Only from main, never from a pull request (a fork's PR has no secrets and
+    # the job would fail confusingly), and only once the repository variable
+    # MOBILE_DEPLOY_ENABLED is 'true'. workflow_dispatch is included because
+    # EXPO_PUBLIC_API_URL is inlined at build time: changing it rebuilds nothing
+    # on its own, and no push touches mobile/** just because the API moved.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.MOBILE_DEPLOY_ENABLED == 'true'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The guard is not belt-and-braces: an unset `vars.*` renders as an empty
+      # string, `client.ts` reads it with `??` (which does not treat "" as
+      # absent), and `new URL('/api/v1/images', "")` then throws on every
+      # request. Without this the deploy stays green and ships a site where
+      # nothing loads. Setting the value as a *secret* produces exactly that.
+      - name: Export web build
+        run: |
+          test -n "$EXPO_PUBLIC_API_URL" || { echo "::error::EXPO_PUBLIC_API_URL repository variable is not set"; exit 1; }
+          npm run build:web
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+
+      # Pinned to a major rather than @latest so a Netlify release cannot change
+      # the deploy behaviour without a commit here.
+      - name: Deploy
+        run: npx --yes netlify-cli@27 deploy --dir=dist --prod --message "$GITHUB_SHA"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

@@ -1,0 +1,164 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+# Supersede an outdated pull-request run; let runs on main finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  APP_ENV: testing
+  APP_KEY: ci-only-not-a-secret
+  DB_HOST: 127.0.0.1
+  DB_PORT: '5432'
+  DB_DATABASE: cars_images_api
+  DB_USERNAME: cars_images_api
+  DB_PASSWORD: secret
+  CACHE_STORE: database
+
+jobs:
+  test:
+    name: Lint, migrations, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: cars_images_api
+          POSTGRES_USER: cars_images_api
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cars_images_api -d cars_images_api"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements/*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Ruff lint
+        run: ruff check --output-format=github .
+
+      - name: Ruff format
+        run: ruff format --check .
+
+      - name: Django system checks
+        run: python manage.py check
+
+      # A model change without its migration would deploy and then fail at
+      # boot on Render, where start.sh runs `migrate`. Catch it here instead.
+      - name: No missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Tests
+        run: pytest
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Advisory feeds are occasionally unreachable and new CVEs land without a
+    # code change. Report, but do not block merges on it.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements/*.txt
+
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit --requirement requirements/base.txt --progress-spinner off
+
+  image:
+    name: Build and boot the production image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: cars_images_api
+          POSTGRES_USER: cars_images_api
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cars_images_api -d cars_images_api"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build
+        run: docker build --tag cars-api-django-backend .
+
+      # The same image Render runs, started the way Render starts it: migrate,
+      # cache table, admin account, seed, gunicorn. A broken start.sh or a
+      # missing static manifest fails here rather than in a red deploy.
+      - name: Boot against PostgreSQL and smoke test
+        run: |
+          set -euo pipefail
+          docker run --detach --name api --network host \
+            -e PORT=8000 -e APP_ENV=production -e APP_DEBUG=false -e APP_KEY=ci-only-not-a-secret \
+            -e ALLOWED_HOSTS=localhost \
+            -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD -e CACHE_STORE \
+            -e ADMIN_EMAIL=ci@example.test -e ADMIN_PASSWORD=ci-only-admin-passphrase \
+            cars-api-django-backend
+
+          if ! curl --silent --show-error --fail --retry 30 --retry-connrefused --retry-all-errors --retry-delay 2 \
+                 http://localhost:8000/up; then
+            docker logs api
+            exit 1
+          fi
+          echo
+
+          curl --silent --show-error --fail --output login.html http://localhost:8000/admin/login/
+          css="$(grep -o '/static/admin/css/base\.[0-9a-f]*\.css' login.html | head -n1)"
+          test -n "$css" || { echo "::error::Hashed admin CSS not referenced; collectstatic manifest missing?"; exit 1; }
+          curl --silent --show-error --fail --output /dev/null "http://localhost:8000${css}"
+          echo "Health, admin login page and WhiteNoise static files OK."
+
+      - name: Container logs
+        if: always()
+        run: docker logs api || true

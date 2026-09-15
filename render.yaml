@@ -1,0 +1,79 @@
+# Render Blueprint - the Django API and admin as a free Docker web service.
+# Setup walkthrough: DEPLOYMENT.md.
+#
+# The database is NOT defined here. Render's free PostgreSQL expires 30 days
+# after creation (then is deleted unless upgraded), which would silently wipe a
+# portfolio demo. Neon's free tier does not expire, so the service connects to
+# an external Neon database through the DB_* variables below.
+#
+# `sync: false` values are prompted for once, when the Blueprint is first
+# created, and are never stored in this file. Later changes go through the
+# service's Environment page.
+
+services:
+  - type: web
+    name: cars-images-api
+    runtime: docker
+    plan: free
+    # Pick the region closest to your Neon project; every query crosses it.
+    region: oregon
+    # Monorepo: build only from backend/. Paths below are relative to rootDir.
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Free instances have no pre-deploy command or shell; bin/start.sh runs
+    # migrations and creates the admin account on every boot instead.
+    healthCheckPath: /up
+    # Deploy a commit to main only after its GitHub checks pass.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      # https://<service-name>.onrender.com - used for signed export links and CSRF.
+      - key: APP_URL
+        sync: false
+
+      # Neon: Dashboard -> Connect. Use the direct (non "-pooler") host: Django
+      # keeps persistent connections (DB_CONN_MAX_AGE) and server-side cursors,
+      # which a transaction-mode pooler does not support.
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+
+      # Database cache, created by `createcachetable` at boot. Survives restarts
+      # and is shared by the gunicorn workers, unlike an in-memory cache.
+      - key: CACHE_STORE
+        value: database
+
+      # Both Netlify origins, comma-separated, no trailing slash.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+      # Created or updated by `manage.py ensure_admin` on every boot.
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # Must contain a real contact URL or email (Wikimedia User-Agent policy).
+      - key: WIKIMEDIA_USER_AGENT
+        sync: false
+
+      # Gunicorn sizing for the 512 MB instance (see bin/start.sh).
+      - key: WEB_CONCURRENCY
+        value: "2"
