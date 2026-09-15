@@ -1,0 +1,25 @@
+[project]
+name = "cars-images-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
+testpaths = ["tests", "apps"]
+addopts = "-q --strict-markers --no-migrations"
+filterwarnings = [
+    "ignore::DeprecationWarning:environ.*",
+    # staticfiles/ only exists after collectstatic (Docker build)
+    "ignore:No directory at:UserWarning",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "DJ", "SIM", "RUF"]
+# DJ001: nullable strings are deliberate — the API contract distinguishes null from "".
+ignore = ["RUF012", "DJ001"]

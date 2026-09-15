@@ -1,0 +1,7 @@
+-r base.txt
+pytest>=8.3
+pytest-django>=4.10
+factory-boy>=3.3
+respx>=0.22
+time-machine>=2.16
+ruff>=0.11
