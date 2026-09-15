@@ -94,10 +94,12 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       # Run from web/ so Netlify picks up web/netlify.toml (SPA rewrites, headers).
+      # --no-build: netlify.toml has a build command, and netlify-cli would otherwise
+      # rebuild here without VITE_API_URL and ship a bundle pointed at localhost.
       # Pinned to a major so a Netlify release cannot change deploy behaviour
       # without a commit here.
       - name: Deploy
-        run: npx --yes netlify-cli@27 deploy --dir=dist --prod --message "$GITHUB_SHA"
+        run: npx --yes netlify-cli@27 deploy --dir=dist --prod --no-build --message "$GITHUB_SHA"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_WEB_SITE_ID }}

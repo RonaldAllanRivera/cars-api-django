@@ -115,7 +115,7 @@ jobs:
       # Pinned to a major rather than @latest so a Netlify release cannot change
       # the deploy behaviour without a commit here.
       - name: Deploy
-        run: npx --yes netlify-cli@27 deploy --dir=dist --prod --message "$GITHUB_SHA"
+        run: npx --yes netlify-cli@27 deploy --dir=dist --prod --no-build --message "$GITHUB_SHA"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
