@@ -11,9 +11,17 @@ A **Django + Django REST Framework** platform that searches, filters, reviews, a
 ![Expo](https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-> **Status:** in active development. Progress is tracked in [Milestones](#milestones) and [CHANGELOG.md](CHANGELOG.md).
+> **Status:** feature-complete port, deployed on free tiers. Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 >
-> **Live API:** <https://cars-images-api.onrender.com> ([health](https://cars-images-api.onrender.com/up) · [admin](https://cars-images-api.onrender.com/admin/)). It runs on a free instance, so the first request after it has been idle can take about a minute.
+> **Live demo**
+>
+> | App | URL |
+> |---|---|
+> | Vue web client | <https://cars-images-django-web.netlify.app> |
+> | Expo client (web build) | <https://cars-images-django-mobile.netlify.app> |
+> | Django API · admin | <https://cars-images-api.onrender.com/api/v1> · <https://cars-images-api.onrender.com/admin/> |
+>
+> The API runs on a free instance, so the first request after it has been idle can take about a minute.
 
 ---
 
@@ -407,8 +415,8 @@ cars-api-django/
 - [x] `/api/v1` with scoped tokens and mobile contract parity
 - [x] Django admin
 - [x] Vue 3 web client
-- [ ] Expo client connected to the Django API
-- [ ] CI and free-tier deployment
+- [x] Expo client connected to the Django API
+- [x] CI and free-tier deployment
 
 ---
 
