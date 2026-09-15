@@ -4,7 +4,7 @@ A **Django + Django REST Framework** platform that searches, filters, reviews, a
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white)
-![DRF](https://img.shields.io/badge/DRF-3.16-A30000)
+![DRF](https://img.shields.io/badge/DRF-3.18-A30000)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![Vue](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)
 ![React Native](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react&logoColor=black)
@@ -219,9 +219,10 @@ EXPO_PUBLIC_API_URL=http://localhost:8000
 ```bash
 cp .env.example .env
 docker compose up --build
-docker compose exec api python manage.py migrate
 docker compose exec api python manage.py createsuperuser
 ```
+
+The `api` container applies migrations, creates the cache table, and seeds an empty make/model catalog on start. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` to have the admin account created automatically instead of running `createsuperuser`.
 
 | Service | URL |
 |---|---|
@@ -233,6 +234,8 @@ docker compose exec api python manage.py createsuperuser
 
 **Backend**
 ```bash
+cp .env.example .env
+docker compose up -d db          # PostgreSQL on localhost:5434
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements/dev.txt
@@ -269,7 +272,8 @@ Settings are read from environment variables. Names are shared with the original
 | `APP_KEY` | Django `SECRET_KEY` |
 | `APP_ENV` / `APP_DEBUG` | Environment name and debug mode |
 | `APP_URL` | Public base URL (used for signed export links) |
-| `DB_CONNECTION` | `pgsql` |
+| `DATABASE_URL` | Optional single connection URL; overrides `DB_*` |
+| `DB_SSLMODE` | `require` for managed PostgreSQL (Neon) |
 | `DB_HOST` · `DB_PORT` · `DB_DATABASE` · `DB_USERNAME` · `DB_PASSWORD` | PostgreSQL connection |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated web client origins |
 
@@ -337,6 +341,7 @@ cd mobile && npm run typecheck && npm test
 - **Unit** — model-name normalisation, category candidates, year matching, make confirmation, filename building, image resizing.
 - **Services** — Wikimedia pagination, caching and block handling (HTTP mocked with respx), CSV import rules and caps, import coverage, chunked runs, ZIP/CSV exports.
 - **API** — authentication and ability scoping, filtering, pagination, validation, rate limits, CORS, and signed single-use export links.
+- **Admin** — every admin page renders; review, run, and prune actions behave as expected.
 - **Contract** — API responses are compared against the JSON fixtures the mobile client's Zod schemas are tested with, so a breaking change fails both test suites.
 
 ---
@@ -351,9 +356,10 @@ The whole stack runs on free tiers.
 | PostgreSQL | Neon |
 | Vue web client | Netlify |
 | Expo web build | Netlify |
-| Android build | EAS Build |
 
 GitHub Actions runs linting and tests on every pull request, and deploys `main` once checks pass. Exports are streamed from temporary files, so no object storage is required.
+
+Step-by-step setup, required secrets, and smoke checks: [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
@@ -371,13 +377,18 @@ cars-api-django/
 │   │   ├── imports/         # CSV importer, coverage
 │   │   ├── exports/         # ZIP / CSV builders, signed links
 │   │   └── observability/   # error events, block events, health summary
-│   ├── api/                 # DRF auth, pagination, exception handler, v1 routes
+│   ├── api/                 # bearer auth, abilities, pagination, errors, throttling, v1 views
+│   ├── tests/               # unit, service, API, contract, and admin tests
+│   ├── bin/start.sh         # migrate, cache table, admin, seed, Gunicorn
+│   ├── Dockerfile
 │   └── requirements/
 ├── web/                     # Vue 3 client
 ├── mobile/                  # Expo / React Native client
 ├── .github/workflows/       # CI / CD
 ├── docker-compose.yml
+├── render.yaml              # Render Blueprint (API)
 ├── .env.example
+├── DEPLOYMENT.md
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -386,13 +397,13 @@ cars-api-django/
 
 ## Milestones
 
-- [ ] Django project, PostgreSQL, Docker Compose
-- [ ] Data model and migrations
-- [ ] Wikimedia client, category resolver, year and make matching
-- [ ] Search runner, CSV importer, chunked bulk runs
-- [ ] ZIP / CSV exports with signed links
-- [ ] `/api/v1` with scoped tokens and mobile contract parity
-- [ ] Django admin
+- [x] Django project, PostgreSQL, Docker Compose
+- [x] Data model and migrations
+- [x] Wikimedia client, category resolver, year and make matching
+- [x] Search runner, CSV importer, chunked bulk runs
+- [x] ZIP / CSV exports with signed links
+- [x] `/api/v1` with scoped tokens and mobile contract parity
+- [x] Django admin
 - [ ] Vue 3 web client
 - [ ] Expo client connected to the Django API
 - [ ] CI and free-tier deployment
