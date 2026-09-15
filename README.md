@@ -12,6 +12,8 @@ A **Django + Django REST Framework** platform that searches, filters, reviews, a
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 > **Status:** in active development. Progress is tracked in [Milestones](#milestones) and [CHANGELOG.md](CHANGELOG.md).
+>
+> **Live API:** <https://cars-images-api.onrender.com> ([health](https://cars-images-api.onrender.com/up) · [admin](https://cars-images-api.onrender.com/admin/)). It runs on a free instance, so the first request after it has been idle can take about a minute.
 
 ---
 
