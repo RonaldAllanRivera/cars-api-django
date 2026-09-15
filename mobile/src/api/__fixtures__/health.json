@@ -1,0 +1,20 @@
+{
+    "data": {
+        "searches_by_status": {
+            "pending": 1,
+            "running": 0,
+            "completed": 1,
+            "failed": 0
+        },
+        "errors_last_24h": 1,
+        "errors_by_context_last_7d": {
+            "csv_upload": 0,
+            "csv_row": 0,
+            "search_run": 1,
+            "image_download": 0,
+            "wikimedia_block": 0
+        },
+        "images_last_7d": 2,
+        "latest_error_at": "2026-01-15T09:00:00+00:00"
+    }
+}

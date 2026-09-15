@@ -1,0 +1,72 @@
+# The build runs in the GitHub workflow, not on Netlify; this file only
+# describes the directory to publish, the rewrites that make the dynamic
+# routes reachable, and the headers to serve them with.
+[build]
+  publish = "dist"
+
+# `web.output: "static"` exports one HTML file per route, and a dynamic route
+# keeps its Expo Router filename verbatim - `dist/library/[id].html`. Netlify
+# has no `[id]` convention of its own, so without these a shared link to
+# /library/42 is a 404.
+#
+# Rewrites (status 200), deliberately not a catch-all: an existing file still
+# wins, so /search/runs is served by its own index.html rather than matching
+# /search/:id, and a genuinely unknown path still 404s instead of being handed
+# an app shell. Order matters anyway - the deeper /search/runs/:id is listed
+# before /search/:id rather than relying on that precedence.
+#
+# This list is maintained by hand and nothing links it to the router, so a
+# renamed route leaves a rewrite pointing at a file that no longer exists while
+# the new route has none. That is not hypothetical: the P1 tab restructure
+# moved runs/ under search/ and added library/, and this file kept redirecting
+# /runs/:id for three days while /library/:id 404'd in production. Clicking
+# through inside the app still worked - only a hard navigation showed it.
+# scripts/check-netlify-redirects.mjs now fails the build on that drift.
+[[redirects]]
+  from = "/pipeline/:id"
+  to = "/pipeline/[id].html"
+  status = 200
+
+[[redirects]]
+  from = "/search/runs/:id"
+  to = "/search/runs/[id].html"
+  status = 200
+
+[[redirects]]
+  from = "/search/:id"
+  to = "/search/[id].html"
+  status = 200
+
+[[redirects]]
+  from = "/library/:id"
+  to = "/library/[id].html"
+  status = 200
+
+# The web build keeps its bearer token in localStorage, so the cheap defences
+# against the XSS that would read it are worth having.
+#
+# script-src carries a hash rather than 'unsafe-inline': the export emits
+# exactly one inline script, the stable one-liner
+# `globalThis.__EXPO_ROUTER_HYDRATE__=true;`, so it can be pinned and every
+# other inline script stays blocked. If a future Expo version changes that
+# snippet the hash goes stale and the page client-renders instead of
+# hydrating; recompute it from the emitted HTML rather than reaching for
+# 'unsafe-inline'.
+#
+# style-src does need 'unsafe-inline' - React Native Web ships its rules in an
+# inline <style> block and sets style="" attributes, which no hash can cover.
+# img-src has to reach Wikimedia because the grid renders upload.wikimedia.org
+# URLs straight from the API. connect-src cannot name the API origin: that is
+# EXPO_PUBLIC_API_URL, chosen at build time and unknown to this static file.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'sha256-67fhrP0+BkBqmgGGXTtgiVO/9EQs3QruYNU/7fnRkI8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.wikimedia.org; font-src 'self' data:; connect-src 'self' https:"
+
+[[headers]]
+  for = "/_expo/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

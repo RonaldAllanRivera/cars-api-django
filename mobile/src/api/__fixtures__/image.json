@@ -1,0 +1,25 @@
+{
+    "data": {
+        "id": 1,
+        "car_search_id": 1,
+        "make": "Toyota",
+        "model": "RAV4",
+        "year": 1997,
+        "color": "silver",
+        "title": "File:Toyota RAV4 1997 front.jpg",
+        "description": "A first-generation RAV4, photographed from the front.",
+        "source_url": "https://upload.wikimedia.org/fixture-a.jpg",
+        "thumbnail_url": "https://upload.wikimedia.org/thumb/fixture-a.jpg",
+        "width": 800,
+        "height": 600,
+        "license": "CC BY-SA 4.0",
+        "attribution": "Photo by A. Person, CC BY-SA 4.0",
+        "make_confirmed": true,
+        "year_confirmed": false,
+        "review_status": "approved",
+        "reviewed_by": 1,
+        "reviewed_at": "2026-01-15T09:00:00+00:00",
+        "download_status": "downloaded",
+        "created_at": "2026-01-15T09:00:00+00:00"
+    }
+}

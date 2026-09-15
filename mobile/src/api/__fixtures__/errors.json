@@ -1,0 +1,32 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "context": "search_run",
+            "severity": "error",
+            "message": "The search run failed.",
+            "exception_class": "RuntimeException",
+            "exception_message": "Connection timed out",
+            "trace_excerpt": "#0 /app/Services/Search/RunSearchQueryAction.php(48)\n#1 {main}",
+            "details": {
+                "attempt": 2
+            },
+            "car_search_id": 1,
+            "csv_import_id": null,
+            "car_image_id": null,
+            "occurred_at": "2026-01-15T09:00:00+00:00"
+        }
+    ],
+    "links": {
+        "first": null,
+        "last": null,
+        "prev": null,
+        "next": null
+    },
+    "meta": {
+        "path": "http://localhost/api/v1/errors",
+        "per_page": 24,
+        "next_cursor": null,
+        "prev_cursor": null
+    }
+}

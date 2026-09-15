@@ -1,0 +1,39 @@
+{
+    "data": [
+        {
+            "id": 2,
+            "car_search_id": 1,
+            "make": "Toyota",
+            "model": "RAV4",
+            "year": 1997,
+            "color": null,
+            "title": "File:Toyota RAV4 1997 rear.jpg",
+            "description": null,
+            "source_url": "https://upload.wikimedia.org/fixture-b.jpg",
+            "thumbnail_url": null,
+            "width": null,
+            "height": null,
+            "license": null,
+            "attribution": null,
+            "make_confirmed": null,
+            "year_confirmed": null,
+            "review_status": "pending",
+            "reviewed_by": null,
+            "reviewed_at": null,
+            "download_status": "not_downloaded",
+            "created_at": "2026-01-15T09:00:00+00:00"
+        }
+    ],
+    "links": {
+        "first": null,
+        "last": null,
+        "prev": null,
+        "next": "http://localhost/api/v1/images?per_page=1&cursor=eyJpZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ"
+    },
+    "meta": {
+        "path": "http://localhost/api/v1/images",
+        "per_page": 1,
+        "next_cursor": "eyJpZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+        "prev_cursor": null
+    }
+}
