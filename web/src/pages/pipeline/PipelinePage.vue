@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router';
 
 import { ApiValidationError, errorMessage } from '@/api/client';
 import { useImports, useUploadImport } from '@/api/composables/useImports';
+import { usePluginDownload } from '@/api/composables/usePluginDownload';
 import type { Import } from '@/api/schemas';
 import { useAuth } from '@/auth/auth';
 import CsvDropzone from '@/components/CsvDropzone.vue';
@@ -13,6 +14,7 @@ import Icon from '@/components/Icon.vue';
 import LoadMore from '@/components/LoadMore.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import SkeletonBlock from '@/components/SkeletonBlock.vue';
+import WordPressPluginCard from '@/components/WordPressPluginCard.vue';
 import { useDocumentTitle } from '@/composables/useDocumentTitle';
 import { showToast } from '@/composables/useToast';
 import { plural, timeAgo } from '@/format/time';
@@ -24,6 +26,25 @@ const { can } = useAuth();
 const imports = useImports();
 const upload = useUploadImport();
 const uploadError = ref<string | null>(null);
+const pluginDownload = usePluginDownload();
+const blockedPluginUrl = ref<string | null>(null);
+const pluginError = ref<string | null>(null);
+
+async function downloadPlugin(): Promise<void> {
+  blockedPluginUrl.value = null;
+  pluginError.value = null;
+
+  try {
+    const { link, opened } = await pluginDownload.mutateAsync();
+    if (opened) {
+      showToast(`Downloading ${link.filename}.`);
+    } else {
+      blockedPluginUrl.value = link.url;
+    }
+  } catch (caught) {
+    pluginError.value = errorMessage(caught, 'The plugin could not be downloaded.');
+  }
+}
 
 function importMeta(csvImport: Import): string {
   return [
@@ -118,6 +139,15 @@ async function onUpload(file: File): Promise<void> {
         <ErrorBanner v-if="uploadError" :message="uploadError" class="mb-3" />
         <CsvDropzone :pending="upload.isPending.value" @upload="onUpload" />
       </section>
+
+      <WordPressPluginCard
+        v-if="can('blog:write')"
+        class="order-3 lg:col-start-2"
+        :pending="pluginDownload.isPending.value"
+        :blocked-url="blockedPluginUrl"
+        :error="pluginError"
+        @download="downloadPlugin"
+      />
     </div>
   </div>
 </template>

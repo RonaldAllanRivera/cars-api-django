@@ -25,3 +25,12 @@ class HasAbility(BasePermission):
             return True
         token = request.auth
         return isinstance(token, ApiToken) and token.can(ability)
+
+
+class IsStaff(BasePermission):
+    """403 unless the token belongs to a staff account, whatever abilities the token carries."""
+
+    message = "Only staff can do this."
+
+    def has_permission(self, request, view) -> bool:
+        return bool(getattr(request.user, "is_staff", False))

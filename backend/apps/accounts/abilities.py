@@ -27,13 +27,16 @@ ALL = [
     BLOG_PUBLISH,
 ]
 
+# Granted at login only to staff accounts: they spend AI budget and hand out the WordPress plugin.
+STAFF_ONLY = frozenset({BLOG_READ, BLOG_WRITE, BLOG_PUBLISH})
+
 # Issued when a client does not request specific abilities.
 DEFAULT = [SEARCH_READ, SEARCH_WRITE, REVIEW_WRITE, ERRORS_READ]
 
 
-def resolve(requested: list[str] | None) -> list[str]:
-    """Intersect requested abilities with the known set, in canonical order."""
+def resolve(requested: list[str] | None, *, staff: bool = False) -> list[str]:
+    """Intersect requested abilities with the known set, in canonical order; STAFF_ONLY ones need a staff account."""
     if not requested:
         return list(DEFAULT)
     wanted = set(requested)
-    return [ability for ability in ALL if ability in wanted]
+    return [ability for ability in ALL if ability in wanted and (staff or ability not in STAFF_ONLY)]

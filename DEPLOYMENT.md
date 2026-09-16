@@ -147,9 +147,14 @@ Then sign in to `/admin/`, open both Netlify sites, sign in, and run one search.
 
 Nothing is written or published until you trigger it, so this can wait.
 
-1. **WordPress.** Install or update the `used-cars-search` plugin to **1.6.13 or later**
-   (it copies the SEO fields to Yoast SEO or Rank Math). Create a WordPress user with the
-   `unfiltered_html` capability (an Administrator or Editor on a single site), then
+1. **WordPress.** Sign in to the web app with a **staff** account (the `blog:*` abilities
+   are granted to staff only; sign out and in again after an upgrade so the token picks them
+   up), open **Pipeline → WordPress plugin → Download plugin**, then in WordPress go to
+   **Plugins → Add New → Upload Plugin** and activate **Cars Images Publisher**. It registers
+   the post fields the API writes, copies SEO fields to Yoast SEO or Rank Math, and prints the
+   meta tags itself when neither is installed. (`used-cars-search` 1.6.13+ does the same job
+   and the two can run together.) Create a WordPress user with the `unfiltered_html`
+   capability (an Administrator or Editor on a single site), then
    **Users → Profile → Application Passwords** and create one.
 2. **Render → Environment**, set:
 

@@ -23,6 +23,8 @@ export const REQUESTED_ABILITIES: readonly TokenAbility[] = [
   'imports:write',
   'search:run',
   'exports:read',
+  // Granted by the server to staff accounts only.
+  'blog:write',
 ];
 
 /** Names the token so the server can list and revoke it per device. */

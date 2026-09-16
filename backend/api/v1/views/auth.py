@@ -30,7 +30,7 @@ class LoginView(APIView):
             # endpoint cannot be used to discover which emails exist.
             raise ValidationError({"email": "These credentials do not match our records."})
 
-        granted = abilities.resolve(credentials.get("abilities"))
+        granted = abilities.resolve(credentials.get("abilities"), staff=user.is_staff)
         _, plain = ApiToken.issue(user, credentials["device_name"], granted)
 
         return Response(

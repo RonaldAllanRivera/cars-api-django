@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setSessionForTests } from '@/auth/auth';
+import { REQUESTED_ABILITIES, setSessionForTests } from '@/auth/auth';
 import { mockApi } from '@/test/http';
 import { mountAt, waitFor } from '@/test/mount';
 
@@ -127,5 +127,63 @@ describe('library page', () => {
       year_confirmed: false,
     });
     expect(tab.opener).toBeNull();
+  });
+});
+
+describe('pipeline page - WordPress plugin', () => {
+  const link = {
+    url: 'https://api.test/downloads/wordpress-plugin?token=signed',
+    expires_at: '2026-01-15T10:05:00+00:00',
+    filename: 'cars-images-publisher-1.0.0.zip',
+    version: '1.0.0',
+  };
+
+  it('downloads the plugin through a signed link opened in a new tab', async () => {
+    const tab = { closed: false, opener: {}, location: { href: '' }, close: vi.fn() };
+    vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+    const api = mockApi({
+      'GET /imports': { body: imports },
+      'GET /images/count': { body: { count: 0 } },
+      'POST /wordpress-plugin/download-link': { body: link },
+    });
+    const { wrapper } = await mountAt('/pipeline');
+
+    await waitFor(() => expect(wrapper.text()).toContain('WordPress plugin'));
+    const download = wrapper.findAll('button').find((button) => button.text() === 'Download plugin');
+    await download?.trigger('click');
+
+    await waitFor(() => expect(tab.location.href).toBe(link.url));
+    expect(tab.opener).toBeNull();
+    expect(api.calls('POST /wordpress-plugin/download-link')).toHaveLength(1);
+  });
+
+  it('offers the link itself when the browser blocks the new tab', async () => {
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    mockApi({
+      'GET /imports': { body: imports },
+      'GET /images/count': { body: { count: 0 } },
+      'POST /wordpress-plugin/download-link': { body: link },
+    });
+    const { wrapper } = await mountAt('/pipeline');
+
+    await waitFor(() => expect(wrapper.text()).toContain('WordPress plugin'));
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Download plugin')
+      ?.trigger('click');
+
+    await waitFor(() => expect(wrapper.find(`a[href="${link.url}"]`).exists()).toBe(true));
+  });
+
+  it('is not shown to an account that cannot hold blog:write', async () => {
+    setSessionForTests(
+      me.data,
+      REQUESTED_ABILITIES.filter((ability) => ability !== 'blog:write'),
+    );
+    const api = mockApi({ 'GET /imports': { body: imports }, 'GET /images/count': { body: { count: 0 } } });
+    const { wrapper } = await mountAt('/pipeline');
+
+    await waitFor(() => expect(api.calls('GET /imports')).toHaveLength(1));
+    expect(wrapper.text()).not.toContain('WordPress plugin');
   });
 });

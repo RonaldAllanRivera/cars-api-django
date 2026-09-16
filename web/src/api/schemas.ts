@@ -207,6 +207,15 @@ export const ExportLinkSchema = z.object({
 });
 export type ExportLink = z.infer<typeof ExportLinkSchema>;
 
+/** POST /wordpress-plugin/download-link: a signed, single-use link to the plugin zip. */
+export const PluginDownloadLinkSchema = z.object({
+  url: z.string().url(),
+  expires_at: z.string(),
+  filename: z.string(),
+  version: z.string(),
+});
+export type PluginDownloadLink = z.infer<typeof PluginDownloadLinkSchema>;
+
 /** POST /auth/login is the ONE endpoint with no `data` envelope. */
 export const LoginResponseSchema = z.object({
   token: z.string(),

@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-from api.v1.views import ExportDownloadView
+from api.v1.views import ExportDownloadView, WordPressPluginDownloadView
 
 
 def up(request):
@@ -21,4 +21,5 @@ urlpatterns = [
     path("api/v1/", include("api.urls")),
     # Outside /api: the system browser follows this signed link with no bearer token.
     path("exports/download", ExportDownloadView.as_view(), name="exports-download"),
+    path("downloads/wordpress-plugin", WordPressPluginDownloadView.as_view(), name="wordpress-plugin-download"),
 ]

@@ -9,7 +9,7 @@ import { can, onSignedOut, REQUESTED_ABILITIES, restoreSession, signIn, signOut,
 import { ABILITIES_KEY, TOKEN_KEY } from '../tokenStore';
 
 describe('auth', () => {
-  it('asks for all eight abilities and stores the token under cars-images.token', async () => {
+  it('asks for all nine abilities and stores the token under cars-images.token', async () => {
     const api = mockApi({ 'POST /auth/login': { body: login } });
 
     await signIn('fixtures@example.test', 'secret');
@@ -27,9 +27,11 @@ describe('auth', () => {
         'imports:write',
         'search:run',
         'exports:read',
+        // The server grants it to staff accounts only.
+        'blog:write',
       ],
     });
-    expect(REQUESTED_ABILITIES).toHaveLength(8);
+    expect(REQUESTED_ABILITIES).toHaveLength(9);
     expect(window.localStorage.getItem(TOKEN_KEY)).toBe(login.token);
     expect(useAuth().state.status).toBe('authenticated');
   });

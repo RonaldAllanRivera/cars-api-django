@@ -31,5 +31,6 @@ urlpatterns = [
     path("exports", views.ExportCreateView.as_view(), name="exports-create"),
     path("health/summary", views.HealthSummaryView.as_view(), name="health-summary"),
     path("errors", views.ErrorListView.as_view(), name="errors-list"),
+    path("wordpress-plugin/download-link", views.WordPressPluginLinkView.as_view(), name="wordpress-plugin-link"),
     re_path(r"^(?P<unmatched>.*)$", not_found),
 ]
