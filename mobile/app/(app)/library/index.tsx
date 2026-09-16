@@ -125,9 +125,9 @@ export default function ImageGrid() {
   return (
     <Screen>
       <PageTitle title="Library - Cars Images" />
-      {/* An exact match, not a search: ListImagesRequest::apply() does
-          `where('make', ...)`, so "Toy" - and every other prefix - matches
-          nothing. The hint has to say so, or the screen reads as broken. */}
+      {/* An exact match, not a search: the images filter matches `make`
+          exactly, so "Toy" - and every other prefix - matches nothing.
+          The hint has to say so, or the screen reads as broken. */}
       <View className="mb-3">
         <Field
           label="Make"

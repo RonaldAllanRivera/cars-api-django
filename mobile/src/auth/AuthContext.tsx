@@ -19,7 +19,7 @@ interface AuthValue {
 /**
  * What each build asks for at login.
  *
- * The server's TokenAbilities::defaultScope() is frozen as a compatibility
+ * The server's default ability set (`abilities.DEFAULT`) is frozen as a compatibility
  * floor for clients that predate scoping; every current client declares what
  * it needs, so the ability set can grow without the login response changing
  * for anyone - and without the committed login fixture churning.

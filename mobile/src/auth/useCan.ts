@@ -20,7 +20,7 @@ export function canWith(scope: readonly string[], ability: TokenAbility): boolea
  *
  * Reads what the build requested, which equals what was granted while every
  * requested ability is valid: the server intersects the request with
- * TokenAbilities::all(). The rigorous version would persist the login
+ * `abilities.ALL`. The rigorous version would persist the login
  * response's `abilities` and read that; it is deferred until requested and
  * granted can actually differ.
  */

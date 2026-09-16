@@ -128,9 +128,9 @@ export function useBulkRun(csvImportId: number) {
   }, [status, csvImportId, queryClient]);
 
   /**
-   * From this run's observed pace, as ListSearchQueries::runSecondsRemaining()
-   * does - falling back to the configured courtesy pause plus a second of work
-   * until enough has run to measure, so the first estimate is not wild.
+   * From this run's observed pace - falling back to the configured courtesy
+   * pause plus a second of work until enough has run to measure, so the first
+   * estimate is not wild.
    */
   const done = processed + failed;
   const perQuery = done > 0 && elapsed > 0 ? elapsed / done : 2;
