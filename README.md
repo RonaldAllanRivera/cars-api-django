@@ -1,6 +1,10 @@
 # Cars Images API — Django
 
-A **Django + Django REST Framework** platform that searches, filters, reviews, and bulk-exports car photography from **Wikimedia Commons** — one vehicle at a time, or thousands of rows from a CSV — with a **Vue 3** web client and a **React Native (Expo)** mobile client on the same versioned `/api/v1` JSON API.
+A **Django + Django REST Framework** platform that searches, filters, reviews, and bulk-exports car photography from **Wikimedia Commons** — one vehicle at a time, or thousands of rows from a CSV — then has **Claude** write illustrated, SEO-ready **WordPress draft posts** from the approved images under a hard AI spend cap. A **Vue 3** web client and a **React Native (Expo)** mobile client share the same versioned `/api/v1` JSON API.
+
+[![Backend CI](https://github.com/RonaldAllanRivera/cars-api-django/actions/workflows/backend.yml/badge.svg)](https://github.com/RonaldAllanRivera/cars-api-django/actions/workflows/backend.yml)
+[![Web CI](https://github.com/RonaldAllanRivera/cars-api-django/actions/workflows/web.yml/badge.svg)](https://github.com/RonaldAllanRivera/cars-api-django/actions/workflows/web.yml)
+[![Mobile CI](https://github.com/RonaldAllanRivera/cars-api-django/actions/workflows/mobile.yml/badge.svg)](https://github.com/RonaldAllanRivera/cars-api-django/actions/workflows/mobile.yml)
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white)
@@ -10,6 +14,8 @@ A **Django + Django REST Framework** platform that searches, filters, reviews, a
 ![React Native](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react&logoColor=black)
 ![Expo](https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Claude API](https://img.shields.io/badge/Claude%20API-Haiku%204.5-D97757?logo=anthropic&logoColor=white)
+![WordPress](https://img.shields.io/badge/WordPress-REST%20API-21759B?logo=wordpress&logoColor=white)
 
 > **Status:** feature-complete, deployed on free tiers. Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 >
@@ -23,10 +29,20 @@ A **Django + Django REST Framework** platform that searches, filters, reviews, a
 >
 > The API runs on a free instance, so the first request after it has been idle can take about a minute.
 
+## Highlights
+
+- **Two apps, one contract.** Vue 3 and Expo clients on a single versioned API, plus a Django admin; shared JSON fixtures fail the build on contract drift in either direction.
+- **An LLM feature built like a payments feature.** Every Claude call reserves its worst-case cost under a PostgreSQL row lock before it is sent, so concurrent requests cannot overspend the monthly cap, a crash over-reports rather than under-reports, and no failure path pays for the same article twice.
+- **Retries chosen by what a failure proves.** A refused connection is retried; a timed-out response that may already have been billed is not; a WordPress create that may have succeeded is recovered by slug instead of duplicated.
+- **Untrusted input treated as untrusted.** Commons text never enters the model's instructions, is escaped into HTML, and API keys are kept out of error logs and Django error reports.
+- **Long jobs without a worker.** Time-boxed, resumable chunks on a 512 MB free instance, where the database rows are the run state.
+- **Over 1,000 automated tests** across backend, web and mobile, with HTTP to Wikimedia, Claude and WordPress faked, so the suite spends no tokens and touches no live site.
+
 ---
 
 ## Contents
 
+- [Highlights](#highlights)
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Features](#features)
@@ -54,6 +70,7 @@ This platform turns that into a reviewable pipeline:
 2. **Harvest** images from Wikimedia Commons at a rate the API accepts.
 3. **Review** what came back — off-target results are flagged, never silently trusted.
 4. **Export** the approved set as a web-optimised ZIP plus a matching CSV manifest.
+5. **Publish** one Claude-written, illustrated draft post per vehicle to WordPress, for an editor to review.
 
 Every stage is inspectable from the Django admin, the Vue web client, or the Expo mobile app.
 
@@ -83,19 +100,46 @@ flowchart LR
         CSV["CSV importer<br/>dedupe · caps · coverage"]
         EXP["ZIP / CSV exporters<br/>Pillow resize · signed links"]
         OBS["Error-event logger<br/>health summary"]
+        PUB["Publisher<br/>resumable chunks · spend cap"]
     end
 
     DB[("PostgreSQL")]
     WM(["Wikimedia Commons"])
+    CL(["Claude API"])
+    WP(["WordPress<br/>REST API"])
 
     WEB --> AUTH
     MOB --> AUTH
     AUTH --> VIEWS
     ADM --> DB
-    VIEWS --> SRCH & CSV & EXP & OBS
+    VIEWS --> SRCH & CSV & EXP & OBS & PUB
+    ADM --> PUB
     SRCH --> MATCH --> WMC --> WM
     EXP --> WM
-    SRCH & CSV & EXP & OBS --> DB
+    PUB --> CL & WP & WM
+    SRCH & CSV & EXP & OBS & PUB --> DB
+```
+
+### How a post is published
+
+Each stage is saved before the next can fail, so a run that dies anywhere resumes without paying for the text again or creating a second post.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant R as Publishing run
+    participant DB as PostgreSQL
+    participant C as Claude API
+    participant WP as WordPress
+
+    R->>DB: Reserve worst-case cost (row lock, refuse over cap)
+    R->>C: Facts as data, static instructions, strict JSON schema
+    C-->>R: Title, article, SEO fields, token usage
+    R->>DB: Settle real cost, save article (status: generated)
+    R->>WP: Upload approved images with Commons credits
+    R->>DB: Record each attachment (the upload ledger)
+    R->>WP: Create draft (or update in place, status untouched)
+    R->>DB: Save WordPress id first, then mark published
 ```
 
 ---
@@ -128,15 +172,16 @@ flowchart LR
   (30 days) and the ten latest failures, drawn as inline SVG with no charting library.
 - `prune_error_events` management command with configurable retention.
 
-### Blog publishing
-Turns reviewed images into WordPress **draft** posts written by Claude (`claude-haiku-4-5` by default).
-- **One post per make, model and year**, illustrated only with approved images: the first is the featured image, the rest a gallery, and every one is credited with its Commons licence and author.
-- **Drafts only** — a person publishes. An update never changes the status an editor chose.
-- **SEO title, description and keywords**, derived when the model leaves one empty, and copied to Yoast SEO or Rank Math by the `used-cars-search` plugin (1.6.13 or later).
-- **Bounded spend** — a hard monthly cap checked before every call, a daily limit on new posts, and at most three paid attempts per post.
-- **Never pays twice** — text is saved before WordPress is touched, and a response lost after sending is never retried.
+### AI blog publishing
+Turns reviewed images into WordPress **draft** posts written by Claude (`claude-haiku-4-5`, the cheapest current model, by default).
+- **One post per make, model and year**, illustrated only with approved images: the first is the featured image, the rest an editable Gutenberg gallery, and every image is credited with its Commons title, author and licence.
+- **SEO-ready** — title, meta description and keywords, derived when the model leaves one empty, and copied to Yoast SEO or Rank Math by the **Cars Images Publisher** WordPress plugin, which lives in this repo and prints the tags itself when neither SEO plugin is installed.
+- **One-click plugin install** — staff download the plugin zip from the web app (**Pipeline → WordPress plugin**) through a signed, single-use link; the zip is built from the source in this deploy, so it always matches the API.
+- **Drafts only** — a person publishes. An update never changes the status an editor chose, so a live post stays live.
+- **Bounded spend** — a hard monthly cap checked before every call, a daily limit on new posts, at most three paid attempts per post, and per-model pricing so switching `ANTHROPIC_MODEL` reprices the budget.
 - **No invented figures** — the prompt forbids any price, mileage or performance figure the pipeline did not supply; any the model quotes anyway are flagged in the error log for the reviewer.
-- Run from the admin (**Blog posts → Write and publish selected**), the API (`POST /blog-posts/run-chunk`) or `manage.py publish_blog_posts --seed`.
+- **Visible cost** — every call's tokens and dollar cost are recorded, with month-to-date spend on the admin dashboard and at `GET /blog-posts/budget`.
+- Run it from the admin (**Blog posts → Write and publish selected**), the API (`POST /blog-posts/run-chunk`) or `manage.py publish_blog_posts --seed`.
 
 ---
 
@@ -169,6 +214,7 @@ All endpoints live under `/api/v1`, require `Authorization: Bearer <token>` (exc
 | `GET` | `/blog-posts/budget` | `blog:read` | This month's AI spend against the cap |
 | `POST` | `/blog-posts/sync` | `blog:write` | Queue a post per vehicle with approved images (spends nothing) |
 | `POST` | `/blog-posts/run-chunk` | `blog:publish` | Write and publish the next chunk as drafts (spends AI budget, 6/min) |
+| `POST` | `/wordpress-plugin/download-link` | `blog:write` + staff | Signed, single-use link to the WordPress plugin zip |
 
 ### Contract
 
@@ -211,7 +257,7 @@ EXPO_PUBLIC_API_URL=http://localhost:8000
 
 **Drop-in API compatibility.** DRF defaults differ from what the mobile client expects (`Token` vs `Bearer`, `400` vs `422`, `{next, results}` vs `{data, meta}`). Three small, tested extension points — a bearer authentication class, a cursor pagination class, and an exception handler — close the gap, so no client code changes.
 
-**Scoped tokens, hashed at rest.** API tokens store only a SHA-256 hash and a list of abilities. A DRF permission class checks the ability each view declares; a missing ability is `403`, an invalid token is `401`.
+**Scoped tokens, hashed at rest.** API tokens store only a SHA-256 hash and a list of abilities. A DRF permission class checks the ability each view declares; a missing ability is `403`, an invalid token is `401`. The `blog:*` abilities, which spend AI budget, are granted at login only to staff accounts, and the plugin download also checks staff status itself, so a token alone is never enough.
 
 **Polite Wikimedia usage.** A real `User-Agent`, `maxlag`, response caching, a pause between queries, and exponential back-off on transient errors. `429`/`403`/`503` are never retried — they are recorded as block events and stop the bulk run immediately.
 
@@ -222,6 +268,14 @@ EXPO_PUBLIC_API_URL=http://localhost:8000
 **Explicit failures.** A failed image download is skipped and logged; a ZIP where every download failed is reported, never served empty; a search refresh runs in one database transaction.
 
 **Forward-compatible error contexts.** New kinds of failure are added server-side before the clients ship an update. The health summary reports a fixed set of context keys, and both clients accept a context they have never seen and label it readably, so a new failure type cannot break a deployed app.
+
+**Spend enforced before the call, not tallied after.** Each Claude call first reserves its worst-case cost under a `SELECT … FOR UPDATE` on the month's budget row, then calls the API outside the lock and settles to the real cost. The estimate is a true upper bound — the request's UTF-8 byte length (a token covers at least one byte) plus the full `max_tokens` allowance — so the cap holds even if every article comes back at maximum length. A two-thread test against real PostgreSQL locks proves two concurrent calls cannot both squeeze under it.
+
+**Retries follow what a failure proves.** A refused connection never reached the API, so it is retried. A server error or overload was not billed, so it is retried with back-off. A read timeout, dropped connection or gateway timeout may hide a generation that was billed, so it is **not** retried and keeps its worst-case charge; the SDK's own automatic retries are switched off for exactly that reason. WordPress writes follow the same rule: a create that may have succeeded is found by its slug on the next run instead of being posted twice.
+
+**Resumable without a queue.** The generated article is a durable commit point, the WordPress id is saved before anything else can fail, and each uploaded image is a ledger row. A run killed at any point resumes by being called again: it neither pays for the text twice nor creates a duplicate post or attachment.
+
+**Untrusted text stays data.** Wikimedia titles and attributions are text anyone can edit. They reach the model only in the data message, never its instructions, so a title that reads like an instruction is not followed; the instructions are identical for every vehicle, which also keeps them cache-friendly. The same text is HTML-escaped into posts, non-`http(s)` links are dropped, and API keys are scrubbed from error logs and hidden from Django's error reports.
 
 **Query performance.** Composite indexes on `(make, model, year)` and `(context, occurred_at)`, a unique constraint on image ownership, `select_related` / `annotate(Count(...))` to avoid N+1 queries, and cursor pagination that stays fast on deep pages.
 
@@ -234,6 +288,7 @@ EXPO_PUBLIC_API_URL=http://localhost:8000
 | API | Python 3.13, Django 5.2 LTS, Django REST Framework, django-filter |
 | Data | PostgreSQL 17, Django migrations, database cache |
 | Imaging / HTTP | Pillow, httpx |
+| AI and publishing | Anthropic Claude API (official `anthropic` SDK, structured outputs), WordPress REST API (Application Passwords), WordPress plugin in PHP |
 | Web client | Vue 3, Vite, TypeScript, Vue Router, TanStack Query, Zod, Tailwind CSS |
 | Mobile client | Expo SDK 57, React Native 0.86, expo-router, TanStack Query, Zod, NativeWind |
 | Quality | pytest, pytest-django, factory_boy, respx, Ruff, Vitest, Jest |
@@ -417,7 +472,9 @@ cd mobile && npm run typecheck && npm test
 - **Unit** — model-name normalisation, category candidates, year matching, make confirmation, filename building, image resizing.
 - **Services** — Wikimedia pagination, caching and block handling (HTTP mocked with respx), CSV import rules and caps, import coverage, chunked runs, ZIP/CSV exports.
 - **API** — authentication and ability scoping, filtering, pagination, validation, rate limits, CORS, and signed single-use export links.
-- **Admin** — every admin page renders; review, run, and prune actions behave as expected.
+- **Publishing** — the spend cap under concurrent reservations (real PostgreSQL row locks), month and year boundaries, every failure class of a Claude or WordPress call, crash recovery without duplicate posts or double charges, per-model pricing, prompt-injection separation, and HTML escaping. Claude, WordPress and Commons are faked at the HTTP layer, so the suite spends no tokens.
+- **WordPress plugin** — REST field registration and permissions, Yoast SEO and Rank Math copying, escaped head tags, and running beside other SEO plugins, in PHP with WordPress stubbed; the backend suite runs them, lints every PHP file and checks the zip, and CI fails rather than skips if PHP is missing.
+- **Admin** — every admin page renders; review, run, prune and publishing actions behave as expected, and the publishing actions that must not spend AI budget are proven not to.
 - **Contract** — API responses are compared against the JSON fixtures the mobile client's Zod schemas are tested with, so a breaking change fails both test suites.
 
 ---
@@ -432,6 +489,8 @@ The whole stack runs on free tiers.
 | PostgreSQL | Neon |
 | Vue web client | Netlify |
 | Expo web build | Netlify |
+| Post generation | Anthropic Claude API |
+| Publishing target | Any WordPress site with the Cars Images Publisher plugin |
 
 GitHub Actions runs linting and tests on every pull request, and deploys `main` once checks pass. Exports are streamed from temporary files, so no object storage is required.
 
@@ -456,6 +515,7 @@ cars-api-django/
 │   │   └── publishing/      # blog posts, Claude and WordPress clients, AI budget, publishing runs
 │   ├── api/                 # bearer auth, abilities, pagination, errors, throttling, v1 views
 │   ├── tests/               # unit, service, API, contract, and admin tests
+│   ├── wordpress-plugin/    # Cars Images Publisher, zipped on download
 │   ├── bin/start.sh         # migrate, cache table, admin, seed, Gunicorn
 │   ├── Dockerfile
 │   └── requirements/
@@ -494,6 +554,8 @@ cars-api-django/
 - OpenAPI schema and generated TypeScript types shared by both clients.
 - Persist exports to object storage (S3-compatible) instead of streaming.
 - AI-assisted classification for ambiguous images.
+- An evaluation set for generated articles (factual-figure checks, length targets) to compare models and prompts on quality per dollar.
+- Scheduled publishing runs once a worker is in place.
 - Tag-triggered Android and iOS builds.
 
 ---
