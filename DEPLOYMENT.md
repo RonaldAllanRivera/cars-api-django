@@ -143,13 +143,41 @@ curl -sS -o /dev/null -D - -X OPTIONS "$API/api/v1/auth/login" \
 
 Then sign in to `/admin/`, open both Netlify sites, sign in, and run one search.
 
+## 6. Blog publishing (optional)
+
+Nothing is written or published until you trigger it, so this can wait.
+
+1. **WordPress.** Install or update the `used-cars-search` plugin to **1.6.13 or later**
+   (it copies the SEO fields to Yoast SEO or Rank Math). Create a WordPress user with the
+   `unfiltered_html` capability (an Administrator or Editor on a single site), then
+   **Users → Profile → Application Passwords** and create one.
+2. **Render → Environment**, set:
+
+   | Variable | Value |
+   |---|---|
+   | `ANTHROPIC_API_KEY` | From console.anthropic.com |
+   | `ANTHROPIC_MODEL` | `claude-haiku-4-5` (the cheapest current model) |
+   | `AI_MONTHLY_BUDGET_USD` | `1` for the first run |
+   | `WORDPRESS_BASE_URL` | The site's canonical `https://` root, no `/wp-json`. Redirects are refused |
+   | `WORDPRESS_USERNAME`, `WORDPRESS_APP_PASSWORD` | From step 1 |
+   | `WORDPRESS_HOMEPAGE_URL`, `WORDPRESS_SITE_NAME` | Optional; the homepage link heads each article |
+
+3. **First run.** In the admin, approve a few images, select them under **Car images →
+   Queue blog posts**, then **Blog posts → Write and publish selected**. Open the draft in
+   WordPress: check the gallery opens as an editable block, the image credits, and the SEO
+   fields in Yoast or Rank Math. Then raise `AI_MONTHLY_BUDGET_USD`.
+
+A `401` that looks like a wrong password is usually Apache dropping the `Authorization`
+header: add `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` (or `CGIPassAuth On`) to
+the site's `.htaccess`.
+
 ## Notes and limits
 
 - **Wikimedia thumbnails.** Wikimedia's thumbnail CDN rejects many datacenter
   IP ranges, Render's included. Server-side downloads therefore fetch the
   original and resize it locally with Pillow. Browsers load thumbnails from
   their own IPs, so the image grids are unaffected.
-- **Long requests.** Searches, CSV chunks and ZIP exports run inside the request
+- **Long requests.** Searches, CSV chunks, ZIP exports and blog publishing chunks run inside the request
   (no worker on the free tier). Gunicorn allows 180 s per request, and the
   pipeline caps (`CARS_BULK_RUN_MAX_SECONDS`, `CARS_BULK_DOWNLOAD_MAX_IMAGES`)
   keep requests well under that.

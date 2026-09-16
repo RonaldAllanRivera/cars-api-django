@@ -128,15 +128,15 @@ flowchart LR
   (30 days) and the ten latest failures, drawn as inline SVG with no charting library.
 - `prune_error_events` management command with configurable retention.
 
-### Blog publishing *(in progress)*
-Turns reviewed images into WordPress draft posts written by OpenAI. **Nothing generates or publishes yet.**
-
-Built so far:
-- **Records** for posts, attachments, AI usage and monthly spend — one post per make, model and year.
-- **SEO fallbacks** — a missing SEO title, description or keywords is derived from the article and the vehicle, and cut at a word boundary to the length search results display.
-- **The OpenAI prompt** — the article structure of the `used-cars-search` WordPress plugin, a strict JSON response schema, and a rule against quoting any price, mileage or performance figure the pipeline did not supply.
-
-Still to come: the monthly spend cap enforced before each request, the OpenAI and WordPress clients, uploads of approved images only, drafts pushed over the WordPress REST API, and admin and API controls.
+### Blog publishing
+Turns reviewed images into WordPress **draft** posts written by Claude (`claude-haiku-4-5` by default).
+- **One post per make, model and year**, illustrated only with approved images: the first is the featured image, the rest a gallery, and every one is credited with its Commons licence and author.
+- **Drafts only** — a person publishes. An update never changes the status an editor chose.
+- **SEO title, description and keywords**, derived when the model leaves one empty, and copied to Yoast SEO or Rank Math by the `used-cars-search` plugin (1.6.13 or later).
+- **Bounded spend** — a hard monthly cap checked before every call, a daily limit on new posts, and at most three paid attempts per post.
+- **Never pays twice** — text is saved before WordPress is touched, and a response lost after sending is never retried.
+- **No invented figures** — the prompt forbids any price, mileage or performance figure the pipeline did not supply; any the model quotes anyway are flagged in the error log for the reviewer.
+- Run from the admin (**Blog posts → Write and publish selected**), the API (`POST /blog-posts/run-chunk`) or `manage.py publish_blog_posts --seed`.
 
 ---
 
@@ -164,6 +164,11 @@ All endpoints live under `/api/v1`, require `Authorization: Bearer <token>` (exc
 | `POST` | `/exports` | `exports:read` | Create a signed ZIP/CSV download link |
 | `GET` | `/health/summary` | `errors:read` | Pipeline health |
 | `GET` | `/errors` | `errors:read` | Error-event log |
+| `GET` | `/blog-posts` | `blog:read` | AI-written posts; filter by status, make, year, import |
+| `GET` | `/blog-posts/{id}` | `blog:read` | Post detail with article, SEO and media |
+| `GET` | `/blog-posts/budget` | `blog:read` | This month's AI spend against the cap |
+| `POST` | `/blog-posts/sync` | `blog:write` | Queue a post per vehicle with approved images (spends nothing) |
+| `POST` | `/blog-posts/run-chunk` | `blog:publish` | Write and publish the next chunk as drafts (spends AI budget, 6/min) |
 
 ### Contract
 
@@ -337,25 +342,20 @@ Settings are read from environment variables. One flat set of names is shared by
 
 ### AI generation
 
-Read by the blog publishing pipeline, which is still being built.
-
 | Variable | Default |
 |---|---|
-| `OPENAI_API_KEY` | *secret — required to generate* |
-| `OPENAI_ORGANIZATION` | *blank — only for a key that belongs to several organisations* |
-| `OPENAI_MODEL` | `gpt-4o-mini` |
-| `OPENAI_INPUT_USD_PER_1M` | `0.15` |
-| `OPENAI_CACHED_INPUT_USD_PER_1M` | `0.075` |
-| `OPENAI_OUTPUT_USD_PER_1M` | `0.60` |
-| `OPENAI_MONTHLY_BUDGET_USD` | `10.0` (`0` disables the cap) |
-| `OPENAI_MAX_COMPLETION_TOKENS` | `3500` |
-| `OPENAI_TEMPERATURE` | `0.7` |
-| `OPENAI_TIMEOUT` · `OPENAI_CONNECT_TIMEOUT` | `90` · `10` |
-| `OPENAI_RETRY_TIMES` · `OPENAI_RETRY_SLEEP_MS` | `2` · `500` |
-| `OPENAI_RESERVATION_STALE_MINUTES` | `15` |
-| `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
+| `ANTHROPIC_API_KEY` | *secret — required to generate* |
+| `ANTHROPIC_MODEL` | `claude-haiku-4-5` (the cheapest current model) |
+| `ANTHROPIC_MAX_TOKENS` | `8000` |
+| `ANTHROPIC_EFFORT` | *blank — not sent; Haiku 4.5 rejects it* |
+| `ANTHROPIC_TIMEOUT` · `ANTHROPIC_CONNECT_TIMEOUT` | `120` · `10` |
+| `ANTHROPIC_RETRY_TIMES` · `ANTHROPIC_RETRY_SLEEP_MS` | `2` · `500` |
+| `ANTHROPIC_INPUT_USD_PER_1M` · `ANTHROPIC_OUTPUT_USD_PER_1M` · `ANTHROPIC_CACHE_WRITE_USD_PER_1M` · `ANTHROPIC_CACHE_READ_USD_PER_1M` | *blank — use the built-in price list* |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` |
+| `AI_MONTHLY_BUDGET_USD` | `10.0` (`0` disables the cap) |
+| `AI_RESERVATION_STALE_MINUTES` | `15` |
 
-The three `*_USD_PER_1M` rates turn tokens into the spend the monthly cap counts, so change them together with `OPENAI_MODEL`, from the provider's current pricing.
+Prices for known models are built in, so changing `ANTHROPIC_MODEL` reprices the budget automatically. A model missing from the list refuses to run until all four prices are set, so nothing is spent unmetered.
 
 ### WordPress publishing
 
@@ -381,6 +381,7 @@ The three `*_USD_PER_1M` rates turn tokens into the spend the monthly cap counts
 | `PUBLISH_MAX_POSTS_PER_DAY` | `50` |
 | `PUBLISH_SLEEP_SECONDS` | `0.5` |
 | `PUBLISH_MAX_IMAGES_PER_POST` | `8` |
+| `PUBLISH_MAX_GENERATION_ATTEMPTS` | `3` |
 | `PUBLISH_IMAGE_MAX_WIDTH` · `PUBLISH_IMAGE_JPEG_QUALITY` | *same as `CARS_DOWNLOAD_*`* |
 | `PUBLISH_IMAGE_FETCH_TIMEOUT` | `30` |
 | `PUBLISH_IMAGE_MAX_BYTES` | `25000000` |
@@ -452,7 +453,7 @@ cars-api-django/
 │   │   ├── imports/         # CSV importer, coverage
 │   │   ├── exports/         # ZIP / CSV builders, signed links
 │   │   ├── observability/   # error events, block events, health summary
-│   │   └── publishing/      # blog posts, AI usage and budget, SEO, prompt (in progress)
+│   │   └── publishing/      # blog posts, Claude and WordPress clients, AI budget, publishing runs
 │   ├── api/                 # bearer auth, abilities, pagination, errors, throttling, v1 views
 │   ├── tests/               # unit, service, API, contract, and admin tests
 │   ├── bin/start.sh         # migrate, cache table, admin, seed, Gunicorn
@@ -483,7 +484,7 @@ cars-api-django/
 - [x] Vue 3 web client
 - [x] Expo client connected to the Django API
 - [x] CI and free-tier deployment
-- [ ] AI-written WordPress posts — records, SEO and prompt done; spend cap, OpenAI and WordPress clients next
+- [x] AI-written WordPress draft posts (Claude) with a hard monthly spend cap
 
 ---
 

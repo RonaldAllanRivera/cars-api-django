@@ -74,6 +74,28 @@ services:
       - key: WIKIMEDIA_USER_AGENT
         sync: false
 
+      # Blog publishing (optional; nothing runs until triggered). All sync: false,
+      # so a Blueprint sync never overwrites what is set on the Environment page.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # claude-haiku-4-5, the cheapest current model; prices are built in per model.
+      - key: ANTHROPIC_MODEL
+        sync: false
+      # USD per calendar month; 0 disables the cap. Start at 1 and raise it once a draft looks right.
+      - key: AI_MONTHLY_BUDGET_USD
+        sync: false
+      # The site root without /wp-json, as its canonical https URL: redirects are refused.
+      - key: WORDPRESS_BASE_URL
+        sync: false
+      - key: WORDPRESS_USERNAME
+        sync: false
+      - key: WORDPRESS_APP_PASSWORD
+        sync: false
+      - key: WORDPRESS_HOMEPAGE_URL
+        sync: false
+      - key: WORDPRESS_SITE_NAME
+        sync: false
+
       # Gunicorn sizing for the 512 MB instance (see bin/start.sh).
       - key: WEB_CONCURRENCY
         value: "2"
