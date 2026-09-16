@@ -7,6 +7,7 @@ from apps.catalog.models import CarMake, CarModel
 from apps.images.models import CarImage
 from apps.imports.models import CsvImport
 from apps.observability.models import ErrorEvent
+from apps.publishing.models import BlogPost, BlogPostMedia
 from apps.searches.models import CarSearch
 
 
@@ -86,6 +87,28 @@ class ErrorEventFactory(factory.django.DjangoModelFactory):
     severity = ErrorEvent.Severity.ERROR
     message = "The search run failed."
     occurred_at = factory.LazyFunction(timezone.now)
+
+
+class BlogPostFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = BlogPost
+
+    car_search = factory.SubFactory(CarSearchFactory)
+    make = factory.LazyAttribute(lambda o: o.car_search.make if o.car_search else "Toyota")
+    model = factory.LazyAttribute(lambda o: o.car_search.model if o.car_search else "RAV4")
+    year = factory.LazyAttribute(lambda o: o.car_search.from_year if o.car_search else 1997)
+    slug = factory.Sequence(lambda n: f"1997-toyota-rav4-{n}")
+
+
+class BlogPostMediaFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = BlogPostMedia
+
+    blog_post = factory.SubFactory(BlogPostFactory)
+    car_image = factory.SubFactory(CarImageFactory)
+    wp_media_id = factory.Sequence(lambda n: n + 1)
+    wp_source_url = factory.Sequence(lambda n: f"https://wp.test/wp-content/uploads/image-{n}.jpg")
+    filename = factory.Sequence(lambda n: f"1997-toyota-rav4-{n}.jpg")
 
 
 def issue_token(user=None, token_abilities=None) -> tuple[User, str]:

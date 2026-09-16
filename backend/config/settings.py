@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "apps.images",
     "apps.exports",
     "apps.observability",
+    "apps.publishing",
 ]
 
 MIDDLEWARE = [
@@ -243,4 +244,79 @@ CARS_IMAGES = {
     "api_search_max_year_span": env.int("API_SEARCH_MAX_YEAR_SPAN", default=3),
     "api_search_max_images_per_year": env.int("API_SEARCH_MAX_IMAGES_PER_YEAR", default=5),
     "export_link_ttl_seconds": env.int("EXPORT_LINK_TTL_SECONDS", default=300),
+}
+
+# ---------------------------------------------------------------------------
+# OpenAI post generation
+# ---------------------------------------------------------------------------
+# Rates are USD per 1M tokens and are snapshotted onto every AiUsage row, so a
+# price change never rewrites what past runs are recorded as having cost.
+# Changing OPENAI_MODEL without changing the three rates silently redefines the
+# budget cap.
+OPENAI = {
+    "api_key": env("OPENAI_API_KEY", default=""),
+    # Only needed when the key belongs to several organisations; sent as a header when set.
+    "organization": env("OPENAI_ORGANIZATION", default=""),
+    "base_url": env("OPENAI_BASE_URL", default="https://api.openai.com/v1").rstrip("/"),
+    "model": env("OPENAI_MODEL", default="gpt-4o-mini"),
+    "timeout": env.float("OPENAI_TIMEOUT", default=90),
+    "connect_timeout": env.float("OPENAI_CONNECT_TIMEOUT", default=10),
+    "retry_times": env.int("OPENAI_RETRY_TIMES", default=2),
+    "retry_sleep_ms": env.int("OPENAI_RETRY_SLEEP_MS", default=500),
+    # 700-1200 words of HTML plus four shorter fields, with headroom: a truncated
+    # response is discarded, so budgeting too low wastes the whole call.
+    "max_completion_tokens": env.int("OPENAI_MAX_COMPLETION_TOKENS", default=3500),
+    "temperature": env.float("OPENAI_TEMPERATURE", default=0.7),
+    "input_usd_per_1m": env.float("OPENAI_INPUT_USD_PER_1M", default=0.15),
+    "cached_input_usd_per_1m": env.float("OPENAI_CACHED_INPUT_USD_PER_1M", default=0.075),
+    "output_usd_per_1m": env.float("OPENAI_OUTPUT_USD_PER_1M", default=0.60),
+    # 0 disables the cap entirely.
+    "monthly_budget_usd": env.float("OPENAI_MONTHLY_BUDGET_USD", default=10.0),
+    "reservation_stale_minutes": env.int("OPENAI_RESERVATION_STALE_MINUTES", default=15),
+}
+
+# ---------------------------------------------------------------------------
+# WordPress publishing
+# ---------------------------------------------------------------------------
+WORDPRESS = {
+    # The site root, without /wp-json: the client appends the route itself.
+    "base_url": env("WORDPRESS_BASE_URL", default="").rstrip("/"),
+    "username": env("WORDPRESS_USERNAME", default=""),
+    # Application Passwords are displayed in groups of four; WordPress strips the
+    # spaces before comparing, so a pasted value with them must still work.
+    "app_password": env("WORDPRESS_APP_PASSWORD", default="").replace(" ", ""),
+    "timeout": env.float("WORDPRESS_TIMEOUT", default=30),
+    "upload_timeout": env.float("WORDPRESS_UPLOAD_TIMEOUT", default=60),
+    "retry_times": env.int("WORDPRESS_RETRY_TIMES", default=2),
+    "retry_sleep_ms": env.int("WORDPRESS_RETRY_SLEEP_MS", default=500),
+    # Generated copy is never published unreviewed.
+    "post_status": env("WORDPRESS_POST_STATUS", default="draft"),
+    # 0 means "send nothing", so an unset value never clears an editor's choice.
+    "default_category_id": env.int("WORDPRESS_DEFAULT_CATEGORY_ID", default=0),
+    "author_id": env.int("WORDPRESS_AUTHOR_ID", default=0),
+    "homepage_url": env("WORDPRESS_HOMEPAGE_URL", default="").rstrip("/"),
+    "site_name": env("WORDPRESS_SITE_NAME", default=""),
+    # Gutenberg block markup, so a reviewer gets an editable gallery rather than one opaque block.
+    "use_blocks": env.bool("WORDPRESS_USE_BLOCKS", default=True),
+}
+
+# ---------------------------------------------------------------------------
+# Blog publishing limits
+# ---------------------------------------------------------------------------
+# One post is an OpenAI call plus up to max_images_per_post fetch-resize-upload
+# round trips, so the chunk is sized to finish well inside gunicorn's timeout.
+CARS_PUBLISHING = {
+    "max_posts_per_chunk": env.int("PUBLISH_MAX_POSTS_PER_CHUNK", default=2),
+    "chunk_seconds": env.int("PUBLISH_CHUNK_SECONDS", default=60),
+    "max_posts_per_day": env.int("PUBLISH_MAX_POSTS_PER_DAY", default=50),
+    "sleep_seconds_between_posts": env.float("PUBLISH_SLEEP_SECONDS", default=0.5),
+    "max_images_per_post": env.int("PUBLISH_MAX_IMAGES_PER_POST", default=8),
+    # Defaults track the export resizer, so posts and ZIPs produce the same picture.
+    "image_max_width": env.int("PUBLISH_IMAGE_MAX_WIDTH", default=CARS_IMAGES["download_max_width"]),
+    "image_jpeg_quality": env.int("PUBLISH_IMAGE_JPEG_QUALITY", default=CARS_IMAGES["download_jpeg_quality"]),
+    "image_fetch_timeout": env.float("PUBLISH_IMAGE_FETCH_TIMEOUT", default=30),
+    # Commons originals can be enormous; Pillow decoding one is the memory ceiling on a 512MB instance.
+    "image_max_bytes": env.int("PUBLISH_IMAGE_MAX_BYTES", default=25_000_000),
+    # A row left mid-run by a killed worker is reclaimed after this long.
+    "stale_run_minutes": env.int("PUBLISH_STALE_RUN_MINUTES", default=5),
 }
