@@ -124,6 +124,8 @@ flowchart LR
 ### Observability
 - Structured **error-event log** (CSV upload, CSV row, search run, image download, Wikimedia block) with size-clamped messages and a per-import cap.
 - **Health summary**: searches by status, errors in 24 h, errors by context over 7 days, images collected.
+- **Admin dashboard** — health stats with a 7-day sparkline, failures by kind (14 days), search throughput
+  (30 days) and the ten latest failures, drawn as inline SVG with no charting library.
 - `prune_error_events` management command with configurable retention.
 
 ---

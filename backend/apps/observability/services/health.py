@@ -1,5 +1,5 @@
 """
-Port of PipelineHealthSummary: the numbers behind the mobile health screen.
+The numbers behind the health screen.
 
 Every key is always present, zero-filled, so clients never special-case a
 missing one. "Is the pipeline broken now" (24h) and "this week" (7d) are

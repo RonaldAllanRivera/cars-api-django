@@ -1,0 +1,125 @@
+{% load i18n %}
+<section class="pipeline-dashboard" aria-label="{% translate 'Pipeline health' %}">
+  <style>
+    /* Django's dashboard.css pins #content to 600px for the app list column;
+       the charts want the full width. The app list keeps its own width. */
+    .dashboard #content { width: auto; }
+    .pipeline-dashboard { margin-bottom: 24px; clear: both; }
+    .pipeline-dashboard h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
+    .pd-stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 20px; }
+    .pd-stat { position: relative; padding: 14px 16px; border: 1px solid var(--hairline-color); border-radius: 8px;
+               background: var(--body-bg); overflow: hidden; }
+    .pd-stat a.pd-cover { position: absolute; inset: 0; }
+    .pd-stat .pd-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--body-quiet-color); }
+    .pd-stat .pd-value { font-size: 26px; font-weight: 700; line-height: 1.2; margin: 4px 0 2px; word-break: break-word; }
+    .pd-stat .pd-desc { font-size: 12px; color: var(--body-quiet-color); }
+    .pd-good .pd-value { color: #16a34a; } .pd-warn .pd-value { color: #d97706; } .pd-bad .pd-value { color: #dc2626; }
+    .pd-spark { display: block; width: 100%; height: 28px; margin-top: 8px; }
+    .pd-charts { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .pd-card { padding: 16px; border: 1px solid var(--hairline-color); border-radius: 8px; background: var(--body-bg); }
+    .pd-bars { display: flex; align-items: stretch; gap: 4px; height: 160px; }
+    /* Full-height column so the track's percentage height has something to resolve against. */
+    .pd-bar { flex: 1; height: 100%; display: flex; flex-direction: column-reverse; min-width: 6px; }
+    .pd-bar-track { display: flex; flex-direction: column-reverse; width: 100%; min-height: 2px; }
+    .pd-seg { width: 100%; border-radius: 2px 2px 0 0; }
+    .pd-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--body-quiet-color); margin-top: 6px; }
+    .pd-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; margin-top: 10px; }
+    .pd-legend span.pd-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+    .pd-empty { color: var(--body-quiet-color); font-size: 13px; padding: 28px 0; text-align: center; }
+    .pd-failures { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .pd-failures th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--body-quiet-color); padding-bottom: 6px; }
+    .pd-failures td { padding: 6px 10px 6px 0; border-top: 1px solid var(--hairline-color); vertical-align: top; }
+    .pd-pill { display: inline-block; padding: 1px 8px; border-radius: 9999px; color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  </style>
+
+  <h2>{% translate "Pipeline health" %}</h2>
+  <div class="pd-stats">
+    {% for stat in stats %}
+      <div class="pd-stat pd-{{ stat.tone }}">
+        <div class="pd-label">{{ stat.label }}</div>
+        <div class="pd-value">{{ stat.value }}</div>
+        <div class="pd-desc">{{ stat.description }}</div>
+        {% if stat.sparkline %}
+          <svg class="pd-spark" viewBox="0 0 720 160" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="{{ stat.sparkline }}" fill="none" stroke="currentColor" stroke-width="6"
+                      stroke-linejoin="round" stroke-linecap="round" opacity=".55" />
+          </svg>
+        {% endif %}
+        {% if stat.url %}<a class="pd-cover" href="{{ stat.url }}"><span class="visually-hidden">{{ stat.label }}</span></a>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="pd-charts">
+    <div class="pd-card">
+      <h2>{% blocktranslate with days=errors_by_context.window_days %}Failures by kind ({{ days }} days){% endblocktranslate %}</h2>
+      {% if errors_by_context.peak %}
+        <div class="pd-bars" role="img"
+             aria-label="{% blocktranslate with days=errors_by_context.window_days %}Errors per day over {{ days }} days, split by kind{% endblocktranslate %}">
+          {% for day in errors_by_context.days %}
+            <div class="pd-bar" title="{{ day.label }}: {{ day.total }}">
+              <div class="pd-bar-track" style="height: {{ day.height_percent }}%">
+                {% for segment in day.segments %}
+                  <div class="pd-seg" style="height: {{ segment.height_percent }}%; background: {{ segment.color }}"
+                       title="{{ segment.label }}: {{ segment.count }}"></div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="pd-axis"><span>{{ errors_by_context.days|first }}</span><span>{{ errors_by_context.days|last }}</span></div>
+        <div class="pd-legend">
+          {% for entry in errors_by_context.legend %}
+            <span><span class="pd-dot" style="background: {{ entry.color }}"></span>{{ entry.label }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="pd-empty">{% translate "No failures recorded in this window." %}</p>
+      {% endif %}
+    </div>
+
+    <div class="pd-card">
+      <h2>{% blocktranslate with days=throughput.window_days %}Searches run ({{ days }} days){% endblocktranslate %}</h2>
+      {% if throughput.peak %}
+        <svg viewBox="0 0 {{ throughput.width }} {{ throughput.height }}" preserveAspectRatio="none"
+             style="width:100%;height:160px" role="img"
+             aria-label="{% blocktranslate with days=throughput.window_days %}Completed and failed searches per day over {{ days }} days{% endblocktranslate %}">
+          {% for series in throughput.series %}
+            <polyline points="{{ series.points }}" fill="none" stroke="{{ series.color }}" stroke-width="3"
+                      stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+          {% endfor %}
+        </svg>
+        <div class="pd-axis">{% for label in throughput.labels %}<span>{{ label }}</span>{% endfor %}</div>
+        <div class="pd-legend">
+          {% for series in throughput.series %}
+            <span><span class="pd-dot" style="background: {{ series.color }}"></span>{{ series.label }} · {{ series.total }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="pd-empty">{% translate "No searches have run in this window." %}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="pd-card" style="margin-top:20px">
+    <h2>{% translate "Latest failures" %}</h2>
+    {% if latest_failures %}
+      <table class="pd-failures">
+        <thead><tr><th>{% translate "When" %}</th><th>{% translate "Kind" %}</th><th>{% translate "Message" %}</th></tr></thead>
+        <tbody>
+          {% for event in latest_failures %}
+            <tr>
+              <td style="white-space:nowrap" title="{{ event.occurred_at }}">
+                <a href="{{ event.url }}">{{ event.occurred_at|timesince }} ago</a>
+              </td>
+              <td><span class="pd-pill" style="background: {{ event.color }}">{{ event.label }}</span></td>
+              <td>{{ event.message|truncatechars:120 }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="pd-empty">{% translate "Nothing has failed. The pipeline has recorded no errors." %}</p>
+    {% endif %}
+  </div>
+</section>

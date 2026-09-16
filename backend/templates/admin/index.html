@@ -1,0 +1,5 @@
+{% extends "admin/index.html" %}
+{% load admin_dashboard %}
+
+{# The stock app list still follows; the dashboard answers "does anything need me?" first. #}
+{% block content %}{% pipeline_dashboard %}{{ block.super }}{% endblock %}

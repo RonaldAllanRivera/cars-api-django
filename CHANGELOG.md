@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pipeline:** CSV importer with validation, dedupe and caps; import coverage; Pillow ZIP export and matching CSV manifest; health summary; `prune_error_events`.
 - **API:** all `/api/v1` endpoints, with a contract test against the mobile client's JSON fixtures. Export links are signed, and ZIP links are single-use.
 - **Admin:** Django admin for runs, reviews, exports, error log and token revocation; `ensure_admin` and `seed_catalog` commands.
+- **Admin dashboard:** pipeline health stats, failures by kind, search throughput and latest failures on the admin home page, ported from the Filament widgets.
 - **Web client:** Vue 3 app with search, library, CSV pipeline with live bulk-run progress, keyboard-driven review queue, and health dashboard.
 - **Mobile client:** the existing Expo app, running unchanged against the new API.
 - **Infrastructure:** Docker image, Render Blueprint, GitHub Actions for backend, web and mobile, and a free-tier deployment guide.

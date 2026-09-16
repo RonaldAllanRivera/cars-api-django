@@ -1,8 +1,9 @@
 """
 Django settings for Cars Images API.
 
-Environment variable names are shared with the original Laravel project
-(APP_KEY, DB_HOST, WIKIMEDIA_*, CARS_*, ...) so one .env works everywhere.
+One flat set of environment variable names (APP_KEY, DB_HOST, WIKIMEDIA_*,
+CARS_*, ...) is shared by local, CI and deployed runs, so one .env works
+everywhere.
 """
 
 from pathlib import Path
@@ -70,7 +71,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],  # admin/index.html override
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -117,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
 ]
 
-# Laravel's CACHE_STORE=database equivalent: needs `manage.py createcachetable`.
+# Database-backed cache: needs `manage.py createcachetable`.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache"
@@ -178,8 +179,8 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.FormParser",
     ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
-    "DEFAULT_PAGINATION_CLASS": "api.pagination.LaravelCursorPagination",
-    "EXCEPTION_HANDLER": "api.exceptions.laravel_exception_handler",
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.CursorEnvelopePagination",
+    "EXCEPTION_HANDLER": "api.exceptions.field_errors_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": ["api.throttling.SettingsScopedRateThrottle"],
     "DEFAULT_CONTENT_NEGOTIATION_CLASS": "api.negotiation.JSONOnlyContentNegotiation",
     "DEFAULT_THROTTLE_RATES": {
@@ -189,7 +190,7 @@ REST_FRAMEWORK = {
         "logout": "60/min",
         "read": "120/min",
     },
-    # Matches Laravel's ISO-8601 output: 2026-01-15T09:00:00+00:00
+    # ISO-8601 with a numeric offset, as the clients parse: 2026-01-15T09:00:00+00:00
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%:z",
     "UNAUTHENTICATED_USER": None,
 }
@@ -204,7 +205,7 @@ LOGGING = {
 }
 
 # ---------------------------------------------------------------------------
-# Wikimedia Commons (Laravel config/images.php)
+# Wikimedia Commons
 # ---------------------------------------------------------------------------
 WIKIMEDIA = {
     "base_url": env("WIKIMEDIA_BASE_URL", default="https://commons.wikimedia.org/w/api.php"),
@@ -223,7 +224,7 @@ WIKIMEDIA = {
 }
 
 # ---------------------------------------------------------------------------
-# Pipeline limits (Laravel config/cars-images.php)
+# Pipeline limits
 # ---------------------------------------------------------------------------
 CARS_IMAGES = {
     "csv_import_max_combos": env.int("CSV_IMPORT_MAX_COMBOS", default=1000),

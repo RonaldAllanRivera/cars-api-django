@@ -1,5 +1,5 @@
 """
-Port of the error-events:prune retention rule.
+The error-event retention rule.
 
 Deliberately not scheduled: pruning is operator-triggered. Every trigger
 (the `prune_error_events` command included) calls prune(), so the retention
