@@ -63,7 +63,7 @@ describe('health page', () => {
 
     await waitFor(() => expect(wrapper.text()).toContain('Errors, last 24 hours'));
     await waitFor(() => expect(wrapper.text()).toContain('The search run failed.'));
-    expect(wrapper.text()).toContain('RuntimeException: Connection timed out');
+    expect(wrapper.text()).toContain('RuntimeError: Connection timed out');
 
     const bar = wrapper.findAll('button[aria-pressed]').find((button) => button.text().includes('Search run'));
     await bar?.trigger('click');

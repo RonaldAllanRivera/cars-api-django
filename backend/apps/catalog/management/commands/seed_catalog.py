@@ -1,4 +1,4 @@
-"""Seed common makes and models (ported from Laravel's CarMakeSeeder). Safe to run repeatedly."""
+"""Seed common makes and models. Safe to run repeatedly."""
 
 from django.core.management.base import BaseCommand
 from django.db import transaction

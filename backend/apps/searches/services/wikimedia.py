@@ -1,4 +1,4 @@
-"""Wikimedia Commons API client. Port of app/Services/Images/WikimediaClient.php."""
+"""Wikimedia Commons API client: caching, back-off, and block detection."""
 
 import hashlib
 import html

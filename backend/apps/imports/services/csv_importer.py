@@ -1,6 +1,6 @@
 """
-Port of CsvQueryImporter: turns an uploaded Make/Model/Year CSV into one
-pending single-year CarSearch per unique combination.
+Turns an uploaded Make/Model/Year CSV into one pending single-year CarSearch
+per unique combination.
 """
 
 import csv

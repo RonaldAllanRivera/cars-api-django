@@ -11,7 +11,7 @@ import { SectionHeading } from '@/ui/SectionHeading';
 import { Skeleton, SkeletonGrid } from '@/ui/Skeleton';
 import { StatTile } from '@/ui/StatTile';
 
-/** Mirrors ErrorEvent::contexts() - keys to the labels Filament shows. */
+/** Mirrors ErrorEvent.Context - keys to the labels the admin shows. */
 const CONTEXT_LABELS: Record<string, string> = {
   csv_upload: 'CSV upload',
   csv_row: 'CSV row',

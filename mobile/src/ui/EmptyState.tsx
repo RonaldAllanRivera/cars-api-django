@@ -6,7 +6,7 @@ import { Button } from './Button';
 /**
  * An empty screen is an invitation to act, not a dead end.
  *
- * Filament gives its empty states a heading, a description, an icon and an
+ * The admin panel gives its empty states a heading, a description, an icon and an
  * action; this is the same four, with the action optional because some empty
  * states really are terminal ("every image has a verdict").
  */

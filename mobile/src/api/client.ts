@@ -133,7 +133,7 @@ export async function apiRequest<T = unknown>(
   const parsed = schema.safeParse(payload);
 
   if (!parsed.success) {
-    // Drift between the PHP Resource and this schema surfaces here, at the
+    // Drift between the API serializer and this schema surfaces here, at the
     // fetch, naming the field - not as a crash three screens later.
     throw new ApiError(
       response.status,

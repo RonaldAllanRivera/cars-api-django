@@ -14,7 +14,7 @@ interface Props extends Omit<TextInputProps, 'className' | 'placeholderTextColor
 /**
  * A labelled text input.
  *
- * Filament labels every field above its control; the app used the placeholder
+ * The admin panel labels every field above its control; the app used the placeholder
  * as the label, which disappears on the first keystroke and takes the only
  * description of the box with it.
  */

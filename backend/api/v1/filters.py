@@ -1,5 +1,5 @@
 """
-Query filters for the list endpoints (ports of the Laravel List*Request rules).
+Query filters for the list endpoints.
 
 Every filter is optional, but one that is sent must be valid: `?make=` or
 `?make_confirmed=yes` is a 422, never a silently ignored filter.

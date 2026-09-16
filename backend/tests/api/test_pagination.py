@@ -10,7 +10,7 @@ from tests.api.helpers import ids
 pytestmark = pytest.mark.django_db
 
 
-def test_the_cursor_is_laravels_wire_format():
+def test_the_cursor_wire_format_is_stable():
     cursor = Cursor({"id": 2}, points_to_next=True)
 
     assert cursor.encode() == "eyJpZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ"

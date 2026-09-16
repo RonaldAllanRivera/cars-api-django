@@ -5,9 +5,9 @@
             "context": "search_run",
             "severity": "error",
             "message": "The search run failed.",
-            "exception_class": "RuntimeException",
+            "exception_class": "RuntimeError",
             "exception_message": "Connection timed out",
-            "trace_excerpt": "#0 /app/Services/Search/RunSearchQueryAction.php(48)\n#1 {main}",
+            "trace_excerpt": "  File \"/app/apps/searches/services/run_query.py\", line 48, in run_search_query\n    run_search(search)",
             "details": {
                 "attempt": 2
             },

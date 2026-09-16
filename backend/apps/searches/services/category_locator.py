@@ -1,4 +1,4 @@
-"""Port of CommonsCategoryLocator: cached make/model → Commons category."""
+"""Resolves make/model to a Commons category, with the lookup cached."""
 
 from datetime import timedelta
 

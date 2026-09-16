@@ -21,9 +21,9 @@ POINTS_TO_NEXT = "_pointsToNextItems"
 @dataclass(frozen=True)
 class Cursor:
     """
-    Laravel's cursor: base64url JSON of the ordering columns of one row, plus
-    which way it points. Kept wire-compatible so cursors look and behave the
-    same as they did against the PHP API.
+    An opaque cursor: base64url JSON of the ordering columns of one row, plus
+    which way it points. The encoding is part of the published API contract,
+    so it stays stable for clients that hold a cursor across releases.
     """
 
     parameters: dict[str, Any]
@@ -35,7 +35,7 @@ class Cursor:
 
     @classmethod
     def decode(cls, encoded: str) -> "Cursor | None":
-        """None for anything malformed; Laravel treats that as the first page."""
+        """None for anything malformed; the caller treats that as the first page."""
         try:
             raw = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
         except (binascii.Error, ValueError):
@@ -52,7 +52,7 @@ def _cursor_value(value: Any) -> Any:
     return value
 
 
-class LaravelCursorPagination(BasePagination):
+class CursorEnvelopePagination(BasePagination):
     """
     Cursor pagination with the envelope the clients validate:
 
@@ -60,8 +60,8 @@ class LaravelCursorPagination(BasePagination):
          "meta": {path, per_page, next_cursor, prev_cursor}}
 
     Views may set `cursor_ordering` (descending fields ending in a unique one,
-    e.g. ("-occurred_at", "-id")). `per_page` outside 1..100 is a 422, as
-    Laravel's validation made it, rather than being silently clamped.
+    e.g. ("-occurred_at", "-id")). `per_page` outside 1..100 is a 422 rather
+    than being silently clamped, so a client bug surfaces instead of hiding.
     """
 
     page_size = 24

@@ -1,5 +1,5 @@
 """
-Port of ImportCoverage: how much of a CSV import has actually been searched.
+Reports how much of a CSV import has actually been searched.
 
 The images list alone cannot tell a run that stopped early from one that
 finished and found little; counting the searches behind it can.

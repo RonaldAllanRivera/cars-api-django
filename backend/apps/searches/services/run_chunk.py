@@ -1,4 +1,4 @@
-"""Port of RunChunkAction: run the next time-boxed chunk of a CSV import."""
+"""Runs the next time-boxed chunk of a CSV import."""
 
 import time
 from dataclasses import asdict, dataclass, field

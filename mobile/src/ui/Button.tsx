@@ -16,7 +16,7 @@ interface Props {
 }
 
 /*
- * `danger-subtle` rather than a filled red: Filament tints destructive actions
+ * `danger-subtle` rather than a filled red: the panel tints destructive actions
  * and fills primary ones, so a filled Reject would carry the same weight as
  * Approve. The asymmetry is the design, not an oversight.
  */

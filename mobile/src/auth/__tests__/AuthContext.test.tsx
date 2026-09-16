@@ -127,7 +127,7 @@ describe('the abilities each build asks for', () => {
     // CSV was uploaded in the panel, so the web build never needs it and it
     // stays off localStorage tokens.
     //
-    // Asserted here because no Laravel test can catch its absence:
+    // Asserted here because no backend test can catch its absence:
     // actingAsApiUser() grants every ability, so the whole backend suite
     // passes while the export panel is dead on the one build meant to have it.
     expect(REQUESTED_ABILITIES.native).toContain('exports:read');

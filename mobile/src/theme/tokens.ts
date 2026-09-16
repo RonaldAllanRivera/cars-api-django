@@ -13,7 +13,7 @@
  */
 
 /**
- * Three surface tiers, mirroring how Filament's light panel raises a white
+ * Three surface tiers, mirroring how a light admin panel raises a white
  * card off a grey shell. The app previously had one step (slate-800 on
  * slate-900), which is why its card density read as flat.
  */

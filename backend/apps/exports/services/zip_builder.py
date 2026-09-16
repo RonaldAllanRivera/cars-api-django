@@ -1,5 +1,5 @@
 """
-Port of BatchZipBuilder.
+Builds the downloadable ZIP for an approved batch.
 
 Originals are fetched from Wikimedia's upload host and resized locally: the
 thumbnail CDN rejects requests from datacenter IPs.

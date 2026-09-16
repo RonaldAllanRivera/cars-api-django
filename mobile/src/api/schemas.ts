@@ -217,7 +217,7 @@ export type ValidationError = z.infer<typeof ValidationErrorSchema>;
 export const single = <T extends z.ZodTypeAny>(schema: T) => z.object({ data: schema });
 
 /**
- * Laravel's cursor envelope. `meta.next_cursor` is null on the last page -
+ * The cursor envelope every list endpoint returns. `meta.next_cursor` is null on the last page -
  * that null is the infinite-scroll terminator.
  */
 export const cursorPage = <T extends z.ZodTypeAny>(schema: T) =>

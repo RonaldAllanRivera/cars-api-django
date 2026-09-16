@@ -1,4 +1,4 @@
-"""Port of RunSearchQueryAction: run one search, mark failures, log them, re-raise."""
+"""Runs one search: marks failures, logs them, re-raises."""
 
 from django.utils import timezone
 

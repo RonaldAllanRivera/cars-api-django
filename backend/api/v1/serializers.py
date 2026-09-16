@@ -193,7 +193,7 @@ class ReviewSerializer(serializers.Serializer):
 
 
 class NullableText(serializers.CharField):
-    """An optional string where "" means null, as Laravel's ConvertEmptyStringsToNull made it."""
+    """An optional string where "" is normalised to null, so absent and blank are one value."""
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(required=False, allow_null=True, allow_blank=True, default=None, **kwargs)

@@ -6,7 +6,7 @@ from rest_framework.views import exception_handler
 
 
 def _flatten(detail, prefix: str = "") -> dict[str, list[str]]:
-    """Turn DRF's nested error detail into Laravel's {"field": ["msg"]}."""
+    """Flatten DRF's nested error detail into the {"field": ["msg"]} shape clients expect."""
     if isinstance(detail, dict):
         errors: dict[str, list[str]] = {}
         for key, value in detail.items():
@@ -40,7 +40,7 @@ def validation_response(errors: dict[str, list[str]]) -> Response:
     )
 
 
-def laravel_exception_handler(exc, context):
+def field_errors_exception_handler(exc, context):
     """
     Error bodies the clients understand:
       422 {"message", "errors"} for validation, {"message"} for everything else.

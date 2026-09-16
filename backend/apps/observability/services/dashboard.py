@@ -1,7 +1,7 @@
 """
 Numbers and chart geometry for the admin landing page.
 
-Ports the four Filament dashboard widgets. Every figure is scoped to a window:
+Four widgets, each scoped to a window:
 "is the pipeline broken now" is a different question from "has it ever broken",
 and an all-time error count would read as alarming forever.
 
@@ -27,7 +27,7 @@ THROUGHPUT_WINDOW_DAYS = 30
 SPARKLINE_DAYS = 7
 LATEST_FAILURES = 10
 
-# Distinct hues per context, matching the Laravel dashboard.
+# Distinct hues per context, so a legend reads the same on every dashboard.
 CONTEXT_CHART_COLORS = {
     ErrorEvent.Context.WIKIMEDIA_BLOCK: "#dc2626",
     ErrorEvent.Context.CSV_ROW: "#d97706",

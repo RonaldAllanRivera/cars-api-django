@@ -7,7 +7,7 @@ import { SearchSchema } from '../schemas';
 import type { Search } from '../schemas';
 
 /**
- * Mirrors config/cars-images.php. The form enforces these before the round
+ * Mirrors the backend's CARS_IMAGES limits. The form enforces these before the round
  * trip so the user sees the limit rather than a 422.
  */
 export const MAX_YEAR_SPAN = 3;

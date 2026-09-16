@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
  * A section label, in sentence case.
  *
  * Not the tracked-out capitals the health screen used: all-caps eyebrows are
- * absent from Filament and are a generic template signature, so removing them
+ * absent from the admin panel and are a generic template signature, so removing them
  * is simultaneously more faithful to the panel and less templated.
  */
 export function SectionHeading({

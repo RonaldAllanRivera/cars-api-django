@@ -1,8 +1,8 @@
-"""Pure text rules. Ports of ModelSearchTermNormalizer, CommonsCategoryResolver,
-ModelYearMatcher and MakeRelevanceChecker.
+"""Pure text rules: search-term normalisation, category resolution, year
+matching and make-relevance checking.
 
-PHP patterns without the /u modifier are ASCII-only, so they are compiled with
-re.ASCII here; patterns that carried /u keep Python's Unicode classes.
+Patterns that must not match non-ASCII look-alikes are compiled with re.ASCII;
+the rest keep Python's Unicode classes.
 """
 
 import re

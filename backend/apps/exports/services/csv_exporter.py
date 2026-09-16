@@ -1,4 +1,4 @@
-"""Port of BatchCsvExporter: the manifest that accompanies a batch ZIP."""
+"""Writes the CSV manifest that accompanies a batch ZIP."""
 
 from collections.abc import Iterable, Iterator
 

@@ -11,7 +11,7 @@ A **Django + Django REST Framework** platform that searches, filters, reviews, a
 ![Expo](https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-> **Status:** feature-complete port, deployed on free tiers. Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+> **Status:** feature-complete, deployed on free tiers. Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 >
 > **Live demo**
 >
@@ -57,7 +57,7 @@ This platform turns that into a reviewable pipeline:
 
 Every stage is inspectable from the Django admin, the Vue web client, or the Expo mobile app.
 
-This project is a full-stack port of an existing Laravel 13 + Filament + Expo system. The mobile client runs **unchanged** against the Django API: the API honours the exact JSON contract the app validates with Zod, and shared JSON fixtures keep both sides honest.
+The API is built to a versioned JSON contract that both clients hold to. The Expo client validates every response with Zod, and a single set of shared JSON fixtures keeps the backend and the clients honest — drift in either direction fails the contract test rather than surfacing as a crash in the app.
 
 ---
 
@@ -275,7 +275,7 @@ npx expo start
 
 ## Configuration
 
-Settings are read from environment variables. Names are shared with the original Laravel project, so an existing `.env` works with minimal edits.
+Settings are read from environment variables. One flat set of names is shared by local, CI and deployed runs, so the same `.env` works everywhere.
 
 ### Core
 

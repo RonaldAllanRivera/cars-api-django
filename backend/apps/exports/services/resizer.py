@@ -1,5 +1,5 @@
 """
-Port of ImageResizer, using Pillow.
+Resizes originals to web-ready dimensions with Pillow.
 
 Wikimedia refuses on-demand thumbnails for datacenter IPs, so batch downloads
 fetch the original and shrink it here instead.
