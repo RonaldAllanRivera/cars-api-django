@@ -57,6 +57,7 @@ def record(
     car_search=None,
     csv_import=None,
     car_image=None,
+    blog_post=None,
     details: dict | None = None,
     severity: str = ErrorEvent.Severity.ERROR,
     message: str | None = None,
@@ -84,6 +85,7 @@ def record(
             "car_search_id": getattr(car_search, "pk", car_search),
             "csv_import_id": import_id,
             "car_image_id": getattr(car_image, "pk", car_image),
+            "blog_post_id": getattr(blog_post, "pk", blog_post),
             "occurred_at": timezone.now(),
         }
         if isinstance(error, BaseException):

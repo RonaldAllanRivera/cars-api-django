@@ -34,7 +34,13 @@ CONTEXT_CHART_COLORS = {
     ErrorEvent.Context.CSV_UPLOAD: "#7c3aed",
     ErrorEvent.Context.SEARCH_RUN: "#2563eb",
     ErrorEvent.Context.IMAGE_DOWNLOAD: "#0891b2",
+    ErrorEvent.Context.AI_GENERATION: "#db2777",
+    ErrorEvent.Context.AI_BUDGET: "#ca8a04",
+    ErrorEvent.Context.WORDPRESS_PUBLISH: "#4f46e5",
+    ErrorEvent.Context.WORDPRESS_MEDIA: "#0d9488",
 }
+# A context with no hue must grey out, never take the landing page down.
+FALLBACK_CHART_COLOR = "#6b7280"
 STATUS_CHART_COLORS = {CarSearch.Status.COMPLETED: "#16a34a", CarSearch.Status.FAILED: "#dc2626"}
 
 CHART_WIDTH = 720
@@ -180,7 +186,7 @@ def _errors_by_context(today: date) -> dict:
                 segments=[
                     BarSegment(
                         label=labels[context],
-                        color=CONTEXT_CHART_COLORS[context],
+                        color=CONTEXT_CHART_COLORS.get(context, FALLBACK_CHART_COLOR),
                         count=counts[context],
                         height_percent=_percent(counts[context], total),
                     )
@@ -193,7 +199,10 @@ def _errors_by_context(today: date) -> dict:
     return {
         "days": bars,
         "peak": peak,
-        "legend": [{"label": labels[context], "color": CONTEXT_CHART_COLORS[context]} for context in contexts],
+        "legend": [
+            {"label": labels[context], "color": CONTEXT_CHART_COLORS.get(context, FALLBACK_CHART_COLOR)}
+            for context in contexts
+        ],
         "window_days": ERROR_WINDOW_DAYS,
     }
 
@@ -238,7 +247,7 @@ def _latest_failures() -> list[dict]:
         {
             "occurred_at": event.occurred_at,
             "label": event.get_context_display(),
-            "color": CONTEXT_CHART_COLORS[event.context],
+            "color": CONTEXT_CHART_COLORS.get(event.context, FALLBACK_CHART_COLOR),
             "message": event.message or event.exception_message or "",
             "url": reverse("admin:observability_errorevent_change", args=[event.pk]),
         }

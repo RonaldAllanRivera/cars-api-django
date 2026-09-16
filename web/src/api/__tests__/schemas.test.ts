@@ -86,3 +86,23 @@ describe('response schemas', () => {
     expect(RunChunkResponseSchema.parse(chunk).blocked?.retry_after_seconds).toBeNull();
   });
 });
+
+describe('a server newer than this build', () => {
+  const eventFromANewerServer = {
+    ...errors.data[0],
+    context: 'wordpress_publish',
+  };
+
+  it('does not fail the whole error log over an unknown context', () => {
+    expect(ErrorEventSchema.parse(eventFromANewerServer).context).toBe('wordpress_publish');
+  });
+
+  it('does not fail the health summary over an unknown context key', () => {
+    const summary = {
+      ...health.data,
+      errors_by_context_last_7d: { ...health.data.errors_by_context_last_7d, ai_generation: 2 },
+    };
+
+    expect(HealthSummarySchema.parse(summary).errors_by_context_last_7d.ai_generation).toBe(2);
+  });
+});

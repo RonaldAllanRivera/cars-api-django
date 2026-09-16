@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { byline, cleanTitle } from '../imageTitle';
-import { vehicleName, yearRange } from '../labels';
+import { contextLabel, vehicleName, yearRange } from '../labels';
 import { humanSeconds, plural, timeAgo } from '../time';
 
 describe('cleanTitle', () => {
@@ -55,5 +55,15 @@ describe('time', () => {
   it('pluralises', () => {
     expect(plural(1, 'query', 'queries')).toBe('1 query');
     expect(plural(1200, 'image')).toBe('1,200 images');
+  });
+});
+
+describe('contextLabel', () => {
+  it('names the contexts this build knows', () => {
+    expect(contextLabel('csv_row')).toBe('CSV row');
+  });
+
+  it('stays readable for a context added after this build shipped', () => {
+    expect(contextLabel('wordpress_publish')).toBe('Wordpress publish');
   });
 });

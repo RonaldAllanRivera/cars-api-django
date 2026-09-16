@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 import type { ErrorContext } from '@/api/schemas';
-import { CONTEXT_LABELS } from '@/format/labels';
+import { contextLabel } from '@/format/labels';
 
 /**
  * Horizontal bars, sorted by count. A ranked comparison of five categories is
@@ -18,7 +18,7 @@ const rows = computed(() => {
   return entries.map(([context, count]) => ({
     context,
     count,
-    label: CONTEXT_LABELS[context] ?? context,
+    label: contextLabel(context),
     width: count === 0 ? 0 : Math.max(2, (100 * count) / max),
   }));
 });

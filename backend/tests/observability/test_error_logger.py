@@ -3,7 +3,7 @@ from django.db import DatabaseError
 
 from apps.observability.models import ErrorEvent
 from apps.observability.services import error_logger
-from tests.factories import CarSearchFactory, CsvImportFactory
+from tests.factories import BlogPostFactory, CarSearchFactory, CsvImportFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -199,3 +199,11 @@ def test_an_error_event_survives_deletion_of_the_import_it_describes():
     event = ErrorEvent.objects.get()
     assert event.csv_import_id is None
     assert event.message == "Missing required columns"
+
+
+def test_an_error_can_be_linked_to_the_blog_post_it_happened_on():
+    post = BlogPostFactory()
+
+    event = error_logger.record(ErrorEvent.Context.AI_GENERATION, "Generation failed", blog_post=post)
+
+    assert event.blog_post_id == post.pk

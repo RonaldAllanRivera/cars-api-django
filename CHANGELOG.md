@@ -17,13 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Web client:** Vue 3 app with search, library, CSV pipeline with live bulk-run progress, keyboard-driven review queue, and health dashboard.
 - **Mobile client:** the existing Expo app, running unchanged against the new API.
 - **Infrastructure:** Docker image, Render Blueprint, GitHub Actions for backend, web and mobile, and a free-tier deployment guide.
+- **Publishing (groundwork):** `apps.publishing` with the blog post, attachment, AI usage and monthly budget records, plus `OPENAI`, `WORDPRESS` and `CARS_PUBLISHING` settings. Generation and WordPress delivery are not wired up yet.
 
 ### Changed
 - Commons descriptions and attributions are stored as plain text instead of raw HTML, so every client shows clean credits.
 - The resizer applies EXIF orientation, and a failed image download is skipped instead of aborting the whole ZIP.
+- The error log gains AI generation, AI budget, WordPress publish and WordPress media contexts, and an optional link to the blog post a failure happened on.
+- `/health/summary` reports a fixed set of context keys rather than every `ErrorEvent.Context`, so adding a context server-side cannot break a deployed client's parsing.
+- Both clients accept an error context they have never seen and label it readably, instead of rejecting the whole response.
 
 ### Fixed
 - `\x00` bytes in upstream error bodies no longer make PostgreSQL reject error-log inserts.
+- An error context with no assigned chart colour no longer raises `KeyError` on the admin home page; it greys out instead.
+
+### Decided
+- **One post per (make, model, year), keyed by slug.** `model` is nullable and PostgreSQL treats NULLs as distinct, so a unique constraint over the three columns would admit duplicates. The slug doubles as the WordPress slug, which is how a crashed run finds the draft it already created.
+- **Money is `Decimal`, never `float`.** A budget compared against accumulated float error is not a budget.
+- **AI text is committed before WordPress is touched.** A failed publish is retried without paying for the words again.
+- **No OpenAI SDK.** `httpx` is already the house HTTP client, and the SDK's dependencies are not worth carrying on a 512 MB instance for one endpoint.
 
 ## [0.1.0] - 2026-09-15
 

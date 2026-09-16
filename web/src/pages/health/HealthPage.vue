@@ -16,7 +16,7 @@ import SkeletonBlock from '@/components/SkeletonBlock.vue';
 import StatTile from '@/components/StatTile.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import { useDocumentTitle } from '@/composables/useDocumentTitle';
-import { CONTEXT_LABELS } from '@/format/labels';
+import { CONTEXT_LABELS, contextLabel } from '@/format/labels';
 import { formatDateTime, timeAgo } from '@/format/time';
 
 useDocumentTitle('Health');
@@ -150,7 +150,7 @@ function pretty(details: unknown): string {
                 <div class="min-w-0 flex-1">
                   <p class="text-body break-words text-ink">{{ event.message ?? event.exception_message ?? 'No message recorded' }}</p>
                   <p class="mt-0.5 text-meta text-ink-3">
-                    {{ CONTEXT_LABELS[event.context] ?? event.context
+                    {{ contextLabel(event.context)
                     }}<template v-if="event.occurred_at">, <time :datetime="event.occurred_at" :title="formatDateTime(event.occurred_at) ?? undefined">{{ timeAgo(event.occurred_at) }}</time></template>
                   </p>
                 </div>

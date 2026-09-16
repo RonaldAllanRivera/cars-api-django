@@ -14,13 +14,21 @@ export const DownloadStatusSchema = z.enum([
 export const SearchStatusSchema = z.enum(['pending', 'running', 'completed', 'failed']);
 export type SearchStatus = z.infer<typeof SearchStatusSchema>;
 
-export const ErrorContextSchema = z.enum([
+export const KNOWN_ERROR_CONTEXTS = [
   'csv_upload',
   'csv_row',
   'search_run',
   'image_download',
   'wikimedia_block',
-]);
+] as const;
+export type KnownErrorContext = (typeof KNOWN_ERROR_CONTEXTS)[number];
+
+/**
+ * Deliberately open. The server grows contexts (AI generation, WordPress
+ * publishing) between client releases, and a closed enum would fail the whole
+ * error log or health summary over one value this build has never seen.
+ */
+export const ErrorContextSchema = z.union([z.enum(KNOWN_ERROR_CONTEXTS), z.string()]);
 export type ErrorContext = z.infer<typeof ErrorContextSchema>;
 
 /** ListErrorsRequest validates severity against exactly these two values. */

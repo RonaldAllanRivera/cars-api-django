@@ -9,6 +9,10 @@ class ErrorEvent(models.Model):
         SEARCH_RUN = "search_run", "Search run"
         IMAGE_DOWNLOAD = "image_download", "Image download"
         WIKIMEDIA_BLOCK = "wikimedia_block", "Wikimedia block"
+        AI_GENERATION = "ai_generation", "AI generation"
+        AI_BUDGET = "ai_budget", "AI budget"
+        WORDPRESS_PUBLISH = "wordpress_publish", "WordPress publish"
+        WORDPRESS_MEDIA = "wordpress_media", "WordPress media"
 
     class Severity(models.TextChoices):
         ERROR = "error", "Error"
@@ -29,6 +33,9 @@ class ErrorEvent(models.Model):
     )
     car_image = models.ForeignKey(
         "images.CarImage", on_delete=models.SET_NULL, null=True, blank=True, related_name="error_events"
+    )
+    blog_post = models.ForeignKey(
+        "publishing.BlogPost", on_delete=models.SET_NULL, null=True, blank=True, related_name="error_events"
     )
     occurred_at = models.DateTimeField(default=timezone.now, db_index=True)
 

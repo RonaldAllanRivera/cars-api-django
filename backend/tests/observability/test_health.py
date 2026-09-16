@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.images.models import CarImage
 from apps.observability.models import ErrorEvent
-from apps.observability.services.health import pipeline_health_summary
+from apps.observability.services.health import PIPELINE_CONTEXTS, pipeline_health_summary
 from apps.searches.models import CarSearch
 from tests.factories import CarImageFactory, CarSearchFactory, ErrorEventFactory
 
@@ -38,7 +38,7 @@ def test_the_summary_counts_runs_errors_and_images_in_their_windows():
         "images_last_7d": 1,
         "latest_error_at": latest.occurred_at,
     }
-    assert list(summary["errors_by_context_last_7d"]) == list(ErrorEvent.Context.values)
+    assert list(summary["errors_by_context_last_7d"]) == list(PIPELINE_CONTEXTS)
 
 
 def test_latest_error_is_the_newest_by_occurrence_not_by_insertion():
@@ -62,3 +62,16 @@ def test_an_empty_database_still_returns_every_key():
         "images_last_7d": 0,
         "latest_error_at": None,
     }
+
+
+def test_a_publishing_context_does_not_change_the_health_wire_shape():
+    """
+    Deployed clients validate errors_by_context_last_7d against a closed enum, so
+    a new ErrorEvent.Context must not add a key until they ship an update.
+    """
+    ErrorEventFactory(context=ErrorEvent.Context.AI_GENERATION)
+
+    counts = pipeline_health_summary()["errors_by_context_last_7d"]
+
+    assert "ai_generation" not in counts
+    assert list(counts) == list(PIPELINE_CONTEXTS)

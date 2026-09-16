@@ -182,3 +182,20 @@ class TestAdminIndex:
     def test_staff_without_permissions_still_gets_a_page(self, client):
         client.force_login(UserFactory(is_staff=True))
         assert client.get(reverse("admin:index")).status_code == 200
+
+
+def test_every_error_context_has_a_chart_colour():
+    """A context with no colour is a KeyError on the admin landing page."""
+    missing = [context for context in ErrorEvent.Context.values if context not in dashboard.CONTEXT_CHART_COLORS]
+
+    assert missing == []
+
+
+def test_an_unrecognised_context_does_not_take_the_dashboard_down(monkeypatch):
+    ErrorEventFactory(context=ErrorEvent.Context.SEARCH_RUN)
+    monkeypatch.setattr(dashboard, "CONTEXT_CHART_COLORS", {})
+
+    failures = dashboard.dashboard_metrics()["latest_failures"]
+
+    assert len(failures) == 1
+    assert failures[0]["color"] == dashboard.FALLBACK_CHART_COLOR

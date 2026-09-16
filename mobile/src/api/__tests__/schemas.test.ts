@@ -154,3 +154,20 @@ describe('the API contract', () => {
     expect(() => ImageSchema.parse({ ...imageFixture.data, review_status: 'maybe' })).toThrow();
   });
 });
+
+describe('a server newer than this build', () => {
+  it('does not fail the whole error log over an unknown context', () => {
+    const event = { ...errorsFixture.data[0], context: 'wordpress_publish' };
+
+    expect(ErrorEventSchema.parse(event).context).toBe('wordpress_publish');
+  });
+
+  it('does not fail the health summary over an unknown context key', () => {
+    const summary = {
+      ...healthFixture.data,
+      errors_by_context_last_7d: { ...healthFixture.data.errors_by_context_last_7d, ai_generation: 2 },
+    };
+
+    expect(HealthSummarySchema.parse(summary).errors_by_context_last_7d.ai_generation).toBe(2);
+  });
+});
