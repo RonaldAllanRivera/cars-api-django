@@ -122,11 +122,21 @@ flowchart LR
 - Exports are delivered through **short-lived, single-use signed links**.
 
 ### Observability
-- Structured **error-event log** (CSV upload, CSV row, search run, image download, Wikimedia block) with size-clamped messages and a per-import cap.
+- Structured **error-event log** (CSV upload, CSV row, search run, image download, Wikimedia block, AI generation, AI budget, WordPress publish, WordPress media) with size-clamped messages and a per-import cap.
 - **Health summary**: searches by status, errors in 24 h, errors by context over 7 days, images collected.
 - **Admin dashboard** — health stats with a 7-day sparkline, failures by kind (14 days), search throughput
   (30 days) and the ten latest failures, drawn as inline SVG with no charting library.
 - `prune_error_events` management command with configurable retention.
+
+### Blog publishing *(in progress)*
+Turns reviewed images into WordPress draft posts written by OpenAI. **Nothing generates or publishes yet.**
+
+Built so far:
+- **Records** for posts, attachments, AI usage and monthly spend — one post per make, model and year.
+- **SEO fallbacks** — a missing SEO title, description or keywords is derived from the article and the vehicle, and cut at a word boundary to the length search results display.
+- **The OpenAI prompt** — the article structure of the `used-cars-search` WordPress plugin, a strict JSON response schema, and a rule against quoting any price, mileage or performance figure the pipeline did not supply.
+
+Still to come: the monthly spend cap enforced before each request, the OpenAI and WordPress clients, uploads of approved images only, drafts pushed over the WordPress REST API, and admin and API controls.
 
 ---
 
@@ -205,6 +215,8 @@ EXPO_PUBLIC_API_URL=http://localhost:8000
 **No worker required.** Searches, chunks, and ZIPs run inside the request with hard caps (queries per chunk, seconds per chunk, images per ZIP). Clients drive long jobs by calling `run-chunk` repeatedly, which keeps hosting free and failure modes visible. The domain services are framework-agnostic, so moving them to Celery is a wiring change.
 
 **Explicit failures.** A failed image download is skipped and logged; a ZIP where every download failed is reported, never served empty; a search refresh runs in one database transaction.
+
+**Forward-compatible error contexts.** New kinds of failure are added server-side before the clients ship an update. The health summary reports a fixed set of context keys, and both clients accept a context they have never seen and label it readably, so a new failure type cannot break a deployed app.
 
 **Query performance.** Composite indexes on `(make, model, year)` and `(context, occurred_at)`, a unique constraint on image ownership, `select_related` / `annotate(Count(...))` to avoid N+1 queries, and cursor pagination that stays fast on deep pages.
 
@@ -323,6 +335,57 @@ Settings are read from environment variables. One flat set of names is shared by
 | `ERROR_LOG_RETENTION_DAYS` | `30` |
 | `ERROR_LOG_MAX_EVENTS_PER_IMPORT` | `500` |
 
+### AI generation
+
+Read by the blog publishing pipeline, which is still being built.
+
+| Variable | Default |
+|---|---|
+| `OPENAI_API_KEY` | *secret — required to generate* |
+| `OPENAI_ORGANIZATION` | *blank — only for a key that belongs to several organisations* |
+| `OPENAI_MODEL` | `gpt-4o-mini` |
+| `OPENAI_INPUT_USD_PER_1M` | `0.15` |
+| `OPENAI_CACHED_INPUT_USD_PER_1M` | `0.075` |
+| `OPENAI_OUTPUT_USD_PER_1M` | `0.60` |
+| `OPENAI_MONTHLY_BUDGET_USD` | `10.0` (`0` disables the cap) |
+| `OPENAI_MAX_COMPLETION_TOKENS` | `3500` |
+| `OPENAI_TEMPERATURE` | `0.7` |
+| `OPENAI_TIMEOUT` · `OPENAI_CONNECT_TIMEOUT` | `90` · `10` |
+| `OPENAI_RETRY_TIMES` · `OPENAI_RETRY_SLEEP_MS` | `2` · `500` |
+| `OPENAI_RESERVATION_STALE_MINUTES` | `15` |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
+
+The three `*_USD_PER_1M` rates turn tokens into the spend the monthly cap counts, so change them together with `OPENAI_MODEL`, from the provider's current pricing.
+
+### WordPress publishing
+
+| Variable | Default |
+|---|---|
+| `WORDPRESS_BASE_URL` | *site root without `/wp-json`, as its canonical URL — redirects are refused* |
+| `WORDPRESS_USERNAME` | *a user with the `unfiltered_html` capability* |
+| `WORDPRESS_APP_PASSWORD` | *secret — an Application Password; spaces are fine* |
+| `WORDPRESS_POST_STATUS` | `draft` |
+| `WORDPRESS_DEFAULT_CATEGORY_ID` · `WORDPRESS_AUTHOR_ID` | `0` · `0` (`0` sends nothing) |
+| `WORDPRESS_HOMEPAGE_URL` | *blank omits the linked sub-headline* |
+| `WORDPRESS_SITE_NAME` | *blank* |
+| `WORDPRESS_USE_BLOCKS` | `true` |
+| `WORDPRESS_TIMEOUT` · `WORDPRESS_UPLOAD_TIMEOUT` | `30` · `60` |
+| `WORDPRESS_RETRY_TIMES` · `WORDPRESS_RETRY_SLEEP_MS` | `2` · `500` |
+
+### Publishing limits
+
+| Variable | Default |
+|---|---|
+| `PUBLISH_MAX_POSTS_PER_CHUNK` | `2` |
+| `PUBLISH_CHUNK_SECONDS` | `60` |
+| `PUBLISH_MAX_POSTS_PER_DAY` | `50` |
+| `PUBLISH_SLEEP_SECONDS` | `0.5` |
+| `PUBLISH_MAX_IMAGES_PER_POST` | `8` |
+| `PUBLISH_IMAGE_MAX_WIDTH` · `PUBLISH_IMAGE_JPEG_QUALITY` | *same as `CARS_DOWNLOAD_*`* |
+| `PUBLISH_IMAGE_FETCH_TIMEOUT` | `30` |
+| `PUBLISH_IMAGE_MAX_BYTES` | `25000000` |
+| `PUBLISH_STALE_RUN_MINUTES` | `5` |
+
 ### Clients
 
 | Variable | Purpose |
@@ -388,7 +451,8 @@ cars-api-django/
 │   │   ├── images/          # images, review, year and make matching
 │   │   ├── imports/         # CSV importer, coverage
 │   │   ├── exports/         # ZIP / CSV builders, signed links
-│   │   └── observability/   # error events, block events, health summary
+│   │   ├── observability/   # error events, block events, health summary
+│   │   └── publishing/      # blog posts, AI usage and budget, SEO, prompt (in progress)
 │   ├── api/                 # bearer auth, abilities, pagination, errors, throttling, v1 views
 │   ├── tests/               # unit, service, API, contract, and admin tests
 │   ├── bin/start.sh         # migrate, cache table, admin, seed, Gunicorn
@@ -419,6 +483,7 @@ cars-api-django/
 - [x] Vue 3 web client
 - [x] Expo client connected to the Django API
 - [x] CI and free-tier deployment
+- [ ] AI-written WordPress posts — records, SEO and prompt done; spend cap, OpenAI and WordPress clients next
 
 ---
 
