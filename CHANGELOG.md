@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Web client:** Vue 3 app with search, library, CSV pipeline with live bulk-run progress, keyboard-driven review queue, and health dashboard.
 - **Mobile client:** the existing Expo app, running unchanged against the new API.
 - **Infrastructure:** Docker image, Render Blueprint, GitHub Actions for backend, web and mobile, and a free-tier deployment guide.
-- **Publishing (groundwork):** `apps.publishing` with the blog post, attachment, AI usage and monthly budget records, plus `OPENAI`, `WORDPRESS` and `CARS_PUBLISHING` settings. Generation and WordPress delivery are not wired up yet.
+- **Publishing (in progress):** `apps.publishing` with the blog post, attachment, AI usage and monthly budget records; `OPENAI`, `WORDPRESS` and `CARS_PUBLISHING` settings; SEO fallbacks that derive a missing SEO title, description or keywords from the article and the vehicle; and the OpenAI prompt with a strict JSON response schema. Nothing generates or publishes yet.
 
 ### Changed
 - Commons descriptions and attributions are stored as plain text instead of raw HTML, so every client shows clean credits.
@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **One post per (make, model, year), keyed by slug.** `model` is nullable and PostgreSQL treats NULLs as distinct, so a unique constraint over the three columns would admit duplicates. The slug doubles as the WordPress slug, which is how a crashed run finds the draft it already created.
 - **Money is `Decimal`, never `float`.** A budget compared against accumulated float error is not a budget.
 - **AI text is committed before WordPress is touched.** A failed publish is retried without paying for the words again.
+- **Facts never enter the prompt's instructions.** Commons file titles are text anyone can upload, so they travel only in the data message. The instructions stay identical for every vehicle, which is also the prefix a provider can cache.
+- **No invented figures.** The prompt forbids any price, mileage or performance figure the pipeline did not supply, because an article about a model year has none to give.
+- **SEO descriptions come from the intro paragraph**, not the whole article: it opens with a linked sub-headline, which makes a poor description.
 - **No OpenAI SDK.** `httpx` is already the house HTTP client, and the SDK's dependencies are not worth carrying on a 512 MB instance for one endpoint.
 
 ## [0.1.0] - 2026-09-15
