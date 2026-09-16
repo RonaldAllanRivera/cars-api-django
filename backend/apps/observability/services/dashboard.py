@@ -20,6 +20,7 @@ from django.utils import timezone
 from apps.images.models import CarImage
 from apps.imports.models import CsvImport
 from apps.observability.models import ErrorEvent
+from apps.publishing.services.budget import month_to_date
 from apps.searches.models import CarSearch
 
 ERROR_WINDOW_DAYS = 14
@@ -125,7 +126,26 @@ def _stats(today: date) -> list[Stat]:
             url=reverse("admin:images_carimage_changelist"),
         ),
         _latest_import_stat(),
+        _ai_spend_stat(),
     ]
+
+
+def _ai_spend_stat() -> Stat:
+    """Spend against the monthly cap: warns from 80%, alarms at 100% (calls are refused past the cap)."""
+    spend = month_to_date()
+    url = reverse("admin:publishing_aiusage_changelist")
+    if spend["cap_usd"] is None:
+        return Stat(
+            label="AI spend (month)", value=f"${spend['spent_usd']:.2f}", description="No monthly cap set", url=url
+        )
+    percent = spend["percent_used"]
+    return Stat(
+        label="AI spend (month)",
+        value=f"${spend['spent_usd']:.2f}",
+        description=f"of ${spend['cap_usd']:.2f} cap, {percent}% used",
+        tone="bad" if percent >= 100 else "warn" if percent >= 80 else "good",
+        url=url,
+    )
 
 
 def _latest_import_stat() -> Stat:

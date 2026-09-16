@@ -133,21 +133,25 @@ class AiUsage(models.Model):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.RESERVED, db_index=True)
     model = models.CharField(max_length=64)
 
-    prompt_tokens = models.PositiveIntegerField(default=0)
-    cached_prompt_tokens = models.PositiveIntegerField(default=0)
-    completion_tokens = models.PositiveIntegerField(default=0)
+    # Anthropic reports these as separate counts, each billed at its own rate:
+    # cached tokens are never included in input_tokens.
+    input_tokens = models.PositiveIntegerField(default=0)
+    cache_creation_input_tokens = models.PositiveIntegerField(default=0)
+    cache_read_input_tokens = models.PositiveIntegerField(default=0)
+    output_tokens = models.PositiveIntegerField(default=0)
     total_tokens = models.PositiveIntegerField(default=0)
 
     # Snapshotted per row: a later price change must not rewrite what past runs cost.
     input_usd_per_1m = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal("0"))
-    cached_input_usd_per_1m = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal("0"))
     output_usd_per_1m = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal("0"))
+    cache_write_usd_per_1m = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal("0"))
+    cache_read_usd_per_1m = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal("0"))
     # Decimal throughout: a budget compared with accumulated float error is not a budget.
     reserved_usd = models.DecimalField(max_digits=10, decimal_places=6, default=Decimal("0"))
     cost_usd = models.DecimalField(max_digits=10, decimal_places=6, default=Decimal("0"))
 
     request_id = models.CharField(max_length=64, blank=True, default="")
-    finish_reason = models.CharField(max_length=32, blank=True, default="")
+    stop_reason = models.CharField(max_length=32, blank=True, default="")
     latency_ms = models.PositiveIntegerField(null=True, blank=True)
     occurred_at = models.DateTimeField(default=timezone.now, db_index=True)
     settled_at = models.DateTimeField(null=True, blank=True)

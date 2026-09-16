@@ -98,6 +98,9 @@ describe('the API contract', () => {
       'imports:write',
       'search:run',
       'exports:read',
+      'blog:read',
+      'blog:write',
+      'blog:publish',
     ];
 
     expect(() => TokenAbilitySchema.array().parse(every)).not.toThrow();

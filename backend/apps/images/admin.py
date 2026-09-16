@@ -11,6 +11,7 @@ from django.utils.translation import ngettext
 from apps.admin_display import admin_link, badge, thumbnail
 from apps.exports.services import csv_exporter, zip_builder
 from apps.images.models import CarImage
+from apps.publishing.services.seeding import sync_posts
 
 REVIEW_COLORS = {
     CarImage.ReviewStatus.PENDING: "gray",
@@ -66,6 +67,7 @@ class CarImageAdmin(admin.ModelAdmin):
         "reset_selected",
         "download_zip",
         "export_csv",
+        "queue_blog_posts",
     ]
     fieldsets = (
         (None, {"fields": ("preview_large", "title", "description", "source_link")}),
@@ -187,6 +189,18 @@ class CarImageAdmin(admin.ModelAdmin):
     @admin.action(description="Reset selected to pending", permissions=["change"])
     def reset_selected(self, request, queryset):
         self._review(request, queryset, CarImage.ReviewStatus.PENDING)
+
+    # -- publishing ---------------------------------------------------------
+
+    @admin.action(description="Queue blog posts for approved images in selection", permissions=["change"])
+    def queue_blog_posts(self, request, queryset):
+        """Queues one post per vehicle; spends nothing until the posts are published."""
+        result = sync_posts(queryset, requested_by=request.user)
+        self.message_user(
+            request,
+            f"Queued {result.created} new blog post(s); {result.existing} already queued. Only approved images count.",
+            messages.SUCCESS,
+        )
 
     # -- export actions ----------------------------------------------------
 

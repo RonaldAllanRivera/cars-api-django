@@ -15,6 +15,7 @@ from apps.accounts.models import User
 from apps.images.models import CarImage
 from apps.imports.models import CsvImport
 from apps.observability.models import ErrorEvent
+from apps.publishing.models import BlogPost, BlogPostMedia
 from apps.searches.models import CarSearch
 
 # ---------------------------------------------------------------------------
@@ -265,3 +266,78 @@ class ExportFormatSerializer(serializers.Serializer):
     """The format half of an export request; the filters are ImageFilter's."""
 
     format = serializers.ChoiceField(choices=[("csv", "csv"), ("zip", "zip")])
+
+
+class BlogPostMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPostMedia
+        fields = [
+            "wp_media_id",
+            "wp_source_url",
+            "filename",
+            "alt_text",
+            "caption",
+            "credit_url",
+            "position",
+            "is_featured",
+        ]
+        read_only_fields = fields
+
+
+class BlogPostSerializer(serializers.ModelSerializer):
+    images_count = serializers.IntegerField(read_only=True)
+    car_search_id = serializers.IntegerField(read_only=True)
+    csv_import_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = BlogPost
+        fields = [
+            "id",
+            "slug",
+            "year",
+            "make",
+            "model",
+            "status",
+            "title",
+            "wp_post_id",
+            "wp_link",
+            "wp_status",
+            "images_count",
+            "attempts",
+            "last_error",
+            "car_search_id",
+            "csv_import_id",
+            "generated_at",
+            "published_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class BlogPostDetailSerializer(BlogPostSerializer):
+    media = BlogPostMediaSerializer(many=True, read_only=True)
+
+    class Meta(BlogPostSerializer.Meta):
+        fields = [
+            *BlogPostSerializer.Meta.fields,
+            "content",
+            "seo_title",
+            "seo_description",
+            "seo_keywords",
+            "ai_model",
+            "featured_media_id",
+            "media",
+        ]
+        read_only_fields = fields
+
+
+class BlogPostSyncSerializer(serializers.Serializer):
+    csv_import_id = serializers.PrimaryKeyRelatedField(queryset=CsvImport.objects.all(), required=False)
+
+
+class PublishChunkSerializer(serializers.Serializer):
+    csv_import_id = serializers.PrimaryKeyRelatedField(queryset=CsvImport.objects.all(), required=False)
+    post_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), required=False, allow_empty=False, max_length=50
+    )

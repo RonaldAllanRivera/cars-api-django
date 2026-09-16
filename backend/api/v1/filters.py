@@ -15,6 +15,7 @@ from django.utils import timezone
 from apps.images.models import CarImage
 from apps.imports.models import CsvImport
 from apps.observability.models import ErrorEvent
+from apps.publishing.models import BlogPost
 from apps.searches.models import CarSearch
 
 MIN_YEAR = 1900
@@ -137,3 +138,10 @@ class SearchFilter(StrictFilterSet):
 class ErrorFilter(StrictFilterSet):
     context = django_filters.ChoiceFilter(choices=ErrorEvent.Context.choices)
     severity = django_filters.ChoiceFilter(choices=ErrorEvent.Severity.choices)
+
+
+class BlogPostFilter(StrictFilterSet):
+    status = django_filters.ChoiceFilter(choices=BlogPost.Status.choices)
+    make = django_filters.CharFilter(lookup_expr="iexact")
+    year = django_filters.NumberFilter()
+    csv_import_id = django_filters.ModelChoiceFilter(field_name="csv_import", queryset=CsvImport.objects.all())

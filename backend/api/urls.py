@@ -15,6 +15,7 @@ router = SimpleRouter(trailing_slash=False, use_regex_path=False)
 router.register("images", views.ImageViewSet, basename="images")
 router.register("searches", views.SearchViewSet, basename="searches")
 router.register("imports", views.ImportViewSet, basename="imports")
+router.register("blog-posts", views.BlogPostViewSet, basename="blog-posts")
 
 
 def not_found(request: HttpRequest, unmatched: str) -> JsonResponse:

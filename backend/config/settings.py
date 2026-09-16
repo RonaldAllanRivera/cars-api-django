@@ -190,6 +190,8 @@ REST_FRAMEWORK = {
         "review": "60/min",
         "logout": "60/min",
         "read": "120/min",
+        # Each call can spend AI budget and runs for up to a minute.
+        "publish": "6/min",
     },
     # ISO-8601 with a numeric offset, as the clients parse: 2026-01-15T09:00:00+00:00
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%:z",
@@ -247,32 +249,37 @@ CARS_IMAGES = {
 }
 
 # ---------------------------------------------------------------------------
-# OpenAI post generation
+# Claude post generation
 # ---------------------------------------------------------------------------
-# Rates are USD per 1M tokens and are snapshotted onto every AiUsage row, so a
-# price change never rewrites what past runs are recorded as having cost.
-# Changing OPENAI_MODEL without changing the three rates silently redefines the
-# budget cap.
-OPENAI = {
-    "api_key": env("OPENAI_API_KEY", default=""),
-    # Only needed when the key belongs to several organisations; sent as a header when set.
-    "organization": env("OPENAI_ORGANIZATION", default=""),
-    "base_url": env("OPENAI_BASE_URL", default="https://api.openai.com/v1").rstrip("/"),
-    "model": env("OPENAI_MODEL", default="gpt-4o-mini"),
-    "timeout": env.float("OPENAI_TIMEOUT", default=90),
-    "connect_timeout": env.float("OPENAI_CONNECT_TIMEOUT", default=10),
-    "retry_times": env.int("OPENAI_RETRY_TIMES", default=2),
-    "retry_sleep_ms": env.int("OPENAI_RETRY_SLEEP_MS", default=500),
-    # 700-1200 words of HTML plus four shorter fields, with headroom: a truncated
-    # response is discarded, so budgeting too low wastes the whole call.
-    "max_completion_tokens": env.int("OPENAI_MAX_COMPLETION_TOKENS", default=3500),
-    "temperature": env.float("OPENAI_TEMPERATURE", default=0.7),
-    "input_usd_per_1m": env.float("OPENAI_INPUT_USD_PER_1M", default=0.15),
-    "cached_input_usd_per_1m": env.float("OPENAI_CACHED_INPUT_USD_PER_1M", default=0.075),
-    "output_usd_per_1m": env.float("OPENAI_OUTPUT_USD_PER_1M", default=0.60),
-    # 0 disables the cap entirely.
-    "monthly_budget_usd": env.float("OPENAI_MONTHLY_BUDGET_USD", default=10.0),
-    "reservation_stale_minutes": env.int("OPENAI_RESERVATION_STALE_MINUTES", default=15),
+ANTHROPIC = {
+    "api_key": env("ANTHROPIC_API_KEY", default=""),
+    "base_url": env("ANTHROPIC_BASE_URL", default="https://api.anthropic.com").rstrip("/"),
+    # The cheapest current model. Prices come from the built-in list in
+    # apps/publishing/services/pricing.py, so switching models reprices the budget.
+    "model": env("ANTHROPIC_MODEL", default="claude-haiku-4-5"),
+    # 700-1200 words of HTML plus four short fields comes to roughly 3,000 tokens.
+    # A response that hits this ceiling is discarded, so it keeps generous headroom;
+    # it is also what the worst-case budget reservation is priced from.
+    "max_tokens": env.int("ANTHROPIC_MAX_TOKENS", default=8000),
+    # Blank sends no effort parameter. Haiku 4.5 rejects it; newer models accept low-max.
+    "effort": env("ANTHROPIC_EFFORT", default=""),
+    "timeout": env.float("ANTHROPIC_TIMEOUT", default=120),
+    "connect_timeout": env.float("ANTHROPIC_CONNECT_TIMEOUT", default=10),
+    "retry_times": env.int("ANTHROPIC_RETRY_TIMES", default=2),
+    "retry_sleep_ms": env.int("ANTHROPIC_RETRY_SLEEP_MS", default=500),
+    # USD per 1M tokens. Blank uses the price list for ANTHROPIC_MODEL; set all four
+    # only for a model the list does not know, which otherwise refuses to run.
+    "input_usd_per_1m": env("ANTHROPIC_INPUT_USD_PER_1M", default=""),
+    "output_usd_per_1m": env("ANTHROPIC_OUTPUT_USD_PER_1M", default=""),
+    "cache_write_usd_per_1m": env("ANTHROPIC_CACHE_WRITE_USD_PER_1M", default=""),
+    "cache_read_usd_per_1m": env("ANTHROPIC_CACHE_READ_USD_PER_1M", default=""),
+}
+
+# Provider-neutral: the cap applies to whichever model generates the posts.
+AI_BUDGET = {
+    # Hard ceiling on AI spend per calendar month (UTC). 0 disables the cap.
+    "monthly_usd": env.float("AI_MONTHLY_BUDGET_USD", default=10.0),
+    "reservation_stale_minutes": env.int("AI_RESERVATION_STALE_MINUTES", default=15),
 }
 
 # ---------------------------------------------------------------------------
@@ -303,7 +310,7 @@ WORDPRESS = {
 # ---------------------------------------------------------------------------
 # Blog publishing limits
 # ---------------------------------------------------------------------------
-# One post is an OpenAI call plus up to max_images_per_post fetch-resize-upload
+# One post is a Claude call plus up to max_images_per_post fetch-resize-upload
 # round trips, so the chunk is sized to finish well inside gunicorn's timeout.
 CARS_PUBLISHING = {
     "max_posts_per_chunk": env.int("PUBLISH_MAX_POSTS_PER_CHUNK", default=2),
@@ -311,6 +318,9 @@ CARS_PUBLISHING = {
     "max_posts_per_day": env.int("PUBLISH_MAX_POSTS_PER_DAY", default=50),
     "sleep_seconds_between_posts": env.float("PUBLISH_SLEEP_SECONDS", default=0.5),
     "max_images_per_post": env.int("PUBLISH_MAX_IMAGES_PER_POST", default=8),
+    # A post whose generation keeps failing (cut off, declined) stops being retried
+    # after this many paid attempts. Posts that already have their text are unaffected.
+    "max_generation_attempts": env.int("PUBLISH_MAX_GENERATION_ATTEMPTS", default=3),
     # Defaults track the export resizer, so posts and ZIPs produce the same picture.
     "image_max_width": env.int("PUBLISH_IMAGE_MAX_WIDTH", default=CARS_IMAGES["download_max_width"]),
     "image_jpeg_quality": env.int("PUBLISH_IMAGE_JPEG_QUALITY", default=CARS_IMAGES["download_jpeg_quality"]),

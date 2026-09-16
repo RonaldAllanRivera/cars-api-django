@@ -83,22 +83,22 @@ class TestBlogPostMedia:
 class TestAiUsage:
     def test_money_is_stored_exactly(self):
         """A budget compared with accumulated float error is not a budget."""
-        usage = AiUsage.objects.create(model="gpt-4o-mini", cost_usd=Decimal("0.000123"))
+        usage = AiUsage.objects.create(model="claude-haiku-4-5", cost_usd=Decimal("0.000123"))
         usage.refresh_from_db()
 
         assert usage.cost_usd == Decimal("0.000123")
 
     def test_a_usage_row_reads_as_tokens_and_dollars(self):
-        usage = AiUsage.objects.create(model="gpt-4o-mini", total_tokens=1234, cost_usd=Decimal("0.002500"))
+        usage = AiUsage.objects.create(model="claude-haiku-4-5", total_tokens=1234, cost_usd=Decimal("0.002500"))
 
-        assert str(usage) == "gpt-4o-mini 1234 tok $0.002500"
+        assert str(usage) == "claude-haiku-4-5 1234 tok $0.002500"
 
     def test_a_usage_row_starts_reserved(self):
-        assert AiUsage.objects.create(model="gpt-4o-mini").status == AiUsage.Status.RESERVED
+        assert AiUsage.objects.create(model="claude-haiku-4-5").status == AiUsage.Status.RESERVED
 
     def test_deleting_a_post_keeps_its_spend_on_record(self):
         post = BlogPostFactory()
-        usage = AiUsage.objects.create(model="gpt-4o-mini", blog_post=post, cost_usd=Decimal("0.01"))
+        usage = AiUsage.objects.create(model="claude-haiku-4-5", blog_post=post, cost_usd=Decimal("0.01"))
 
         post.delete()
         usage.refresh_from_db()

@@ -50,6 +50,9 @@ export const TokenAbilitySchema = z.enum([
   'imports:write',
   'search:run',
   'exports:read',
+  'blog:read',
+  'blog:write',
+  'blog:publish',
 ]);
 export type TokenAbility = z.infer<typeof TokenAbilitySchema>;
 

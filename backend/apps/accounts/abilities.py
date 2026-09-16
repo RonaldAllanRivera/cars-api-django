@@ -8,6 +8,10 @@ IMPORTS_READ = "imports:read"
 IMPORTS_WRITE = "imports:write"
 SEARCH_RUN = "search:run"
 EXPORTS_READ = "exports:read"
+# Blog publishing. BLOG_PUBLISH spends AI budget, so none are issued by default.
+BLOG_READ = "blog:read"
+BLOG_WRITE = "blog:write"
+BLOG_PUBLISH = "blog:publish"
 
 ALL = [
     SEARCH_READ,
@@ -18,6 +22,9 @@ ALL = [
     IMPORTS_WRITE,
     SEARCH_RUN,
     EXPORTS_READ,
+    BLOG_READ,
+    BLOG_WRITE,
+    BLOG_PUBLISH,
 ]
 
 # Issued when a client does not request specific abilities.

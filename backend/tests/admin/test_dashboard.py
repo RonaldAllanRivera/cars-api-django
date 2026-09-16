@@ -199,3 +199,28 @@ def test_an_unrecognised_context_does_not_take_the_dashboard_down(monkeypatch):
 
     assert len(failures) == 1
     assert failures[0]["color"] == dashboard.FALLBACK_CHART_COLOR
+
+
+class TestAiSpendStat:
+    def stat(self):
+        return next(stat for stat in dashboard.dashboard_metrics()["stats"] if stat.label == "AI spend (month)")
+
+    @pytest.mark.parametrize(("spent", "tone"), [("0", "good"), ("8.5", "warn"), ("11", "bad")])
+    def test_the_tone_warns_near_the_cap_and_alarms_past_it(self, settings, spent, tone):
+        from decimal import Decimal
+
+        from apps.publishing.models import BudgetPeriod
+        from apps.publishing.services import budget
+
+        settings.AI_BUDGET = {**settings.AI_BUDGET, "monthly_usd": 10.0}
+        BudgetPeriod.objects.create(month=budget.month_start(), spent_usd=Decimal(spent))
+
+        stat = self.stat()
+
+        assert stat.tone == tone
+        assert stat.value == f"${Decimal(spent):.2f}"
+
+    def test_without_a_cap_it_says_so(self, settings):
+        settings.AI_BUDGET = {**settings.AI_BUDGET, "monthly_usd": 0}
+
+        assert self.stat().description == "No monthly cap set"

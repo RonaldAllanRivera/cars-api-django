@@ -11,9 +11,12 @@ from apps.accounts.models import ApiToken, User
 from apps.catalog.models import CarMake
 from apps.images.models import CarImage
 from apps.observability.models import ErrorEvent
+from apps.publishing.models import AiUsage, BlogPost, BudgetPeriod
 from apps.searches.models import CarSearch, CommonsCategoryLookup, WikimediaBlockEvent
 from apps.searches.services.wikimedia import WikimediaBlockedError
 from tests.factories import (
+    BlogPostFactory,
+    BlogPostMediaFactory,
     CarImageFactory,
     CarModelFactory,
     CarSearchFactory,
@@ -24,7 +27,7 @@ from tests.factories import (
 
 pytestmark = pytest.mark.django_db
 
-PROJECT_APPS = ("accounts", "catalog", "imports", "searches", "images", "observability")
+PROJECT_APPS = ("accounts", "catalog", "imports", "searches", "images", "observability", "publishing")
 
 
 @pytest.fixture
@@ -45,6 +48,8 @@ def records(superuser):
     search = CarSearchFactory(csv_import=csv_import, status=CarSearch.Status.COMPLETED, commons_category="Toyota RAV4")
     image = CarImageFactory(car_search=search, thumbnail_url="https://upload.wikimedia.org/thumb.jpg")
     token, _ = ApiToken.issue(superuser, "mobile", ["search:read"])
+    post = BlogPostFactory(car_search=search, csv_import=csv_import, wp_post_id=42, wp_link="https://wp.test/?p=42")
+    BlogPostMediaFactory(blog_post=post, car_image=image, is_featured=True)
     return {
         User: superuser,
         ApiToken: token,
@@ -59,6 +64,9 @@ def records(superuser):
         ErrorEvent: ErrorEventFactory(
             car_search=search, csv_import=csv_import, details={"status": 502, "query": "Toyota RAV4"}
         ),
+        BlogPost: post,
+        AiUsage: AiUsage.objects.create(blog_post=post, model="claude-haiku-4-5", cost_usd="0.004069"),
+        BudgetPeriod: BudgetPeriod.objects.create(month=timezone.now().date().replace(day=1)),
     }
 
 
@@ -96,6 +104,9 @@ def test_every_project_model_is_registered():
         "CommonsCategoryLookup",
         "WikimediaBlockEvent",
         "ErrorEvent",
+        "BlogPost",
+        "AiUsage",
+        "BudgetPeriod",
     }
 
 

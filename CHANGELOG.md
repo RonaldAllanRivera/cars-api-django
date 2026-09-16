@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Web client:** Vue 3 app with search, library, CSV pipeline with live bulk-run progress, keyboard-driven review queue, and health dashboard.
 - **Mobile client:** the existing Expo app, running unchanged against the new API.
 - **Infrastructure:** Docker image, Render Blueprint, GitHub Actions for backend, web and mobile, and a free-tier deployment guide.
-- **Publishing (in progress):** `apps.publishing` with the blog post, attachment, AI usage and monthly budget records; `OPENAI`, `WORDPRESS` and `CARS_PUBLISHING` settings; SEO fallbacks that derive a missing SEO title, description or keywords from the article and the vehicle; and the OpenAI prompt with a strict JSON response schema. Nothing generates or publishes yet.
+- **Publishing (in progress):** `apps.publishing` with the blog post, attachment, AI usage and monthly budget records; `ANTHROPIC`, `AI_BUDGET`, `WORDPRESS` and `CARS_PUBLISHING` settings; SEO fallbacks that derive a missing SEO title, description or keywords from the article and the vehicle; the post prompt with a strict JSON response schema; a hard monthly AI spend cap enforced before every call; the Claude and WordPress clients; image upload with Commons credits and a Gutenberg gallery; time-boxed publishing runs; admin actions, an AI spend widget on the dashboard, `publish_blog_posts`, and `/api/v1/blog-posts` behind new `blog:read`, `blog:write` and `blog:publish` abilities. Posts are created as WordPress drafts.
 
 ### Changed
 - Commons descriptions and attributions are stored as plain text instead of raw HTML, so every client shows clean credits.
@@ -37,7 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Facts never enter the prompt's instructions.** Commons file titles are text anyone can upload, so they travel only in the data message. The instructions stay identical for every vehicle, which is also the prefix a provider can cache.
 - **No invented figures.** The prompt forbids any price, mileage or performance figure the pipeline did not supply, because an article about a model year has none to give.
 - **SEO descriptions come from the intro paragraph**, not the whole article: it opens with a linked sub-headline, which makes a poor description.
-- **No OpenAI SDK.** `httpx` is already the house HTTP client, and the SDK's dependencies are not worth carrying on a 512 MB instance for one endpoint.
+- **Posts are written by Claude through the official `anthropic` SDK**, defaulting to `claude-haiku-4-5`, the cheapest current model. The model is configurable with `ANTHROPIC_MODEL`.
+- **Prices are keyed by model.** Changing the model reprices the budget; an unpriced model refuses to run rather than spending unmetered.
+- **The SDK's automatic retries are off.** It retries timeouts, and a request that timed out may already have been billed, so a retry could pay for the same article twice.
+- **Drafts only, and an update never sends a status**, so a post an editor already put live stays live.
+- **Quoted figures are flagged, not discarded.** Discarding would pay to regenerate on every run; every post is a draft a person reviews anyway.
+- **At most three paid writing attempts per post** (`PUBLISH_MAX_GENERATION_ATTEMPTS`), so a post that always fails cannot drain the budget.
+- **A spend cap enforced before the call, not tallied after.** Each call reserves its worst-case cost under a row lock and settles to the real cost; a crash over-reports spend rather than under-reporting it.
 
 ## [0.1.0] - 2026-09-15
 

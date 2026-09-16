@@ -5,6 +5,7 @@ django-cors-headers>=4.6
 django-environ>=0.12
 psycopg[binary]>=3.2
 httpx>=0.28
+anthropic>=1.6,<2
 Pillow>=11
 gunicorn>=25.1
 whitenoise>=6.9
